@@ -1,4 +1,6 @@
 
+using VoidLedger.Core;
+
 namespace VoidLedger.Api
 {
     public class Program
@@ -8,6 +10,20 @@ namespace VoidLedger.Api
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
+
+            builder.Services.AddSingleton<IClock, SystemClock>();
+            builder.Services.AddSingleton<Account>();
+            builder.Services.AddSingleton<Dictionary<string, decimal>>();
+            builder.Services.AddSingleton<Dictionary<string, int>>();
+            builder.Services.AddSingleton<List<ActionRecordBase>>();
+            builder.Services.AddSingleton(sp =>
+                new PriceBook(sp.GetRequiredService<Dictionary<string, decimal>>()));
+            builder.Services.AddSingleton(sp =>
+                new Portfolio(sp.GetRequiredService<Dictionary<string, int>>()));
+            builder.Services.AddSingleton<TradeService>();
+            builder.Services.AddSingleton<ILedgerService, LedgerService>();
+
+
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
