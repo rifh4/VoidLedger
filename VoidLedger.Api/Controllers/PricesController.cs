@@ -16,10 +16,10 @@ namespace VoidLedger.Api.Controllers
             _ledger = ledger;
         }
 
-        [HttpPost("set-price")]
+        [HttpPost("setprice")]
         public IActionResult SetPrice(SetPrice request)
         {
-            OpResult result = _ledger.SetPrice(request.name, request.price);
+            OpResult result = _ledger.SetPrice(request.Name, request.Price);
             return OpResultMapper.ToActionResult(result);
         }
     }
