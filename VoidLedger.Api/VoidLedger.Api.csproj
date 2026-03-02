@@ -14,8 +14,4 @@
     <ProjectReference Include="..\VoidLedger.Core\VoidLedger.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
 </Project>

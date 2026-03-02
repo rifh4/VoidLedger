@@ -12,7 +12,7 @@ namespace VoidLedger.Api
             // Add services to the container.
 
             builder.Services.AddSingleton<IClock, SystemClock>();
-            builder.Services.AddSingleton<Account>();
+            builder.Services.AddSingleton(_ => new Account(0m));
             builder.Services.AddSingleton<Dictionary<string, decimal>>();
             builder.Services.AddSingleton<Dictionary<string, int>>();
             builder.Services.AddSingleton<List<ActionRecordBase>>();

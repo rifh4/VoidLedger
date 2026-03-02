@@ -1,0 +1,62 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using VoidLedger.Core;
+namespace VoidLedger.Api.Http;
+
+
+static class OpResultMapper
+{
+    private static int MapStatus(ErrorCode code)
+    {
+        if (code == ErrorCode.MissingPrice || code == ErrorCode.MissingHolding)
+        {
+            return 404;
+        }
+        else if (code == ErrorCode.Oversell || code == ErrorCode.InsufficientFunds)
+        {
+            return 409;
+        }
+        else if (code == ErrorCode.Unknown)
+        {
+            return 500;
+        }
+        else if (code == ErrorCode.None)
+        {
+            return 200;
+        }
+        else
+        {
+            return 400;
+        }
+    }
+
+    public static IActionResult ToActionResult(OpResult result)
+    {
+        if (result.Ok == true)
+        {
+            return new OkObjectResult(
+                new
+                {
+                    message = result.Message,
+                    record = result.Record?.Describe()
+                }
+            );
+        }
+
+        int status = MapStatus(result.Code);
+
+
+        var pd = new ProblemDetails
+        {
+            Title = result.Code.ToString(),
+            Detail = result.Message,
+            Status = status
+        };
+
+        pd.Extensions["code"] = result.Code.ToString();
+
+        return new ObjectResult(pd) { StatusCode = status };
+
+
+    }
+}
+
