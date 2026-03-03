@@ -32,7 +32,7 @@ namespace VoidLedger.Core
         {
             string cleanName = (name ?? "").Trim().ToUpperInvariant();
             if (cleanName.Length == 0)
-                return new OpResult(false, ErrorCode.Unknown, "Name cannot be empty.", null);
+                return new OpResult(false, ErrorCode.InvalidName, "Name cannot be empty.", null);
 
             bool ok = _priceBook.SetPrice(cleanName, price, out string msg);
             if (!ok)

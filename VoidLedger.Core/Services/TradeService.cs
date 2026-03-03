@@ -16,6 +16,9 @@ public sealed class TradeService
 
     public TradeResult Buy(string name, int qty)
     {
+        if (string.IsNullOrWhiteSpace(name))
+            return new TradeResult(false, ErrorCode.InvalidName, "Name cannot be empty");
+        
         if (qty <= 0)
             return new TradeResult(false, ErrorCode.InvalidAmount, "Quantity must be above 0");
 
@@ -35,6 +38,9 @@ public sealed class TradeService
 
     public TradeResult Sell(string name, int qty)
     {
+        if (string.IsNullOrWhiteSpace(name))
+            return new TradeResult(false, ErrorCode.InvalidName, "Name cannot be empty");
+
         if (qty <= 0)
             return new TradeResult(false, ErrorCode.InvalidAmount, "Quantity must be > 0");
 

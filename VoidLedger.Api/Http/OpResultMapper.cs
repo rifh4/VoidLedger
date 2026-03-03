@@ -23,9 +23,13 @@ static class OpResultMapper
         {
             return 200;
         }
-        else
+        else if (code == ErrorCode.InvalidName || code == ErrorCode.InvalidAmount || code == ErrorCode.InvalidAmount)
         {
             return 400;
+        }
+        else
+        {
+            return 500;
         }
     }
 

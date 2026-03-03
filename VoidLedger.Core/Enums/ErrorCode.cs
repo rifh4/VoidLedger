@@ -8,5 +8,6 @@ public enum ErrorCode
     MissingHolding,
     Oversell,
     InsufficientFunds,
+    InvalidName,
     Unknown
 }
