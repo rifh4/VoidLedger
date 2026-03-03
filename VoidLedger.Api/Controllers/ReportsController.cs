@@ -12,11 +12,11 @@ namespace VoidLedger.Api.Controllers
         public ReportsController(ILedgerService ledger) => _ledger = ledger;
 
         [HttpGet("totals")]
-        public IActionResult Totals()
+        public async Task<IActionResult> Totals()
             => Ok(new { report = _ledger.BuildTotalsReport() });
 
         [HttpGet("actions/by-type")]
-        public IActionResult ActionsByType(string type, int take = 10)
+        public async Task<IActionResult> ActionsByType(string type, int take = 10)
         {
             if (take <= 0)
             {

@@ -17,14 +17,14 @@ namespace VoidLedger.Api.Controllers
         }
 
         [HttpPost("buy")]
-        public IActionResult Trade(TradeRequest request)
+        public async Task<IActionResult> Trade(TradeRequest request)
         {
             OpResult result = _ledger.Buy(request.Name, request.Qty);
             return OpResultMapper.ToActionResult(result);
         }
 
         [HttpPost("sell")]
-        public IActionResult Sell(TradeRequest request)
+        public async Task<IActionResult> Sell(TradeRequest request)
         {
             OpResult result = _ledger.Sell(request.Name, request.Qty);
             return OpResultMapper.ToActionResult(result);

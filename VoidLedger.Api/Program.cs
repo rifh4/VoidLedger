@@ -1,4 +1,5 @@
-
+using Microsoft.EntityFrameworkCore;
+using VoidLedger.Api.Data;
 using VoidLedger.Core;
 
 namespace VoidLedger.Api
@@ -22,17 +23,14 @@ namespace VoidLedger.Api
                 new Portfolio(sp.GetRequiredService<Dictionary<string, int>>()));
             builder.Services.AddSingleton<TradeService>();
             builder.Services.AddSingleton<ILedgerService, LedgerService>();
-
-
-
+            builder.Services.AddDbContext<VoidLedgerDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("VoidLedgerDb")));
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();

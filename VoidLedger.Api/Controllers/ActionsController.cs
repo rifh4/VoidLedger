@@ -15,7 +15,7 @@ namespace VoidLedger.Api.Controllers
         }
 
         [HttpGet("recent")]
-        public IActionResult Recent([FromQuery] int take = 10)
+        public async Task<IActionResult> Recent([FromQuery] int take = 10)
         {
             if (take <= 0)
             {
