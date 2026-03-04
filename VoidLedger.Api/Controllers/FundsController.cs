@@ -17,12 +17,10 @@ namespace VoidLedger.Api.Controllers
         }
 
         [HttpPost("deposit")]
-        public async Task<IActionResult> Deposit(DepositRequest request)
+        public IActionResult Deposit(DepositRequest request)
         {
             OpResult result = _ledger.Deposit(request.Amount);
             return OpResultMapper.ToActionResult(result);
         }
     }
 }
-
-

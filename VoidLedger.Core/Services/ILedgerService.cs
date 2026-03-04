@@ -12,4 +12,5 @@ public interface ILedgerService
     string BuildTotalsReport();
     string RunSmokeTests();
     string BuildActionsByTypeReport(ActionType type, int n);
+    Task<OpResult> DepositAsync(decimal amount);
 }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using VoidLedger.Api.Data;
+using VoidLedger.Api.Data.Stores;
 using VoidLedger.Core;
 
 namespace VoidLedger.Api
@@ -21,10 +22,11 @@ namespace VoidLedger.Api
                 new PriceBook(sp.GetRequiredService<Dictionary<string, decimal>>()));
             builder.Services.AddSingleton(sp =>
                 new Portfolio(sp.GetRequiredService<Dictionary<string, int>>()));
-            builder.Services.AddSingleton<TradeService>();
-            builder.Services.AddSingleton<ILedgerService, LedgerService>();
+            builder.Services.AddScoped<TradeService>();
+            builder.Services.AddScoped<ILedgerService, LedgerService>();
             builder.Services.AddDbContext<VoidLedgerDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("VoidLedgerDb")));
+            builder.Services.AddScoped<IAccountStore, EfAccountStore>();
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
