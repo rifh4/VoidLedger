@@ -1,5 +1,5 @@
 ﻿using VoidLedger.Core.Tests.Support;
-namespace VoidLedger.Core.Tests;
+namespace VoidLedger.Core.Tests.Services;
 
 public sealed class TestSystemFactoryTests
 {
