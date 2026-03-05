@@ -24,7 +24,7 @@ namespace VoidLedger.Core.Tests.Services
             Assert.Equal(ErrorCode.InvalidAmount, result.Code);
             Assert.Null(result.Record);
             Assert.Equal(0m, system.Balance);
-            Assert.Equal(0, system.ActionCount);
+            Assert.Equal(0, system.ActionCount) ;
         }
     }
 }
