@@ -1,0 +1,25 @@
+name: Dotnet Tests
+
+on:
+  push:
+    branches: [ "DTOs" ]
+  pull_request:
+    branches: [ "DTOs" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Test (Release)
+        run: dotnet test --configuration Release --no-restore
