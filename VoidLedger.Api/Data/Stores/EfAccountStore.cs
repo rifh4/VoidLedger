@@ -47,8 +47,6 @@ namespace VoidLedger.Api.Data.Stores
 
             _dbContext.Accounts.Add(account);
 
-            // Save so the row actually exists in the database immediately.
-            // (Not strictly required before returning, but it avoids edge cases later.)
             await _dbContext.SaveChangesAsync();
 
             return account;
