@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using VoidLedger.Api.Data;
 using VoidLedger.Api.Data.Stores;
 using VoidLedger.Core;
+using Microsoft.AspNetCore.Mvc;
 
 namespace VoidLedger.Api
 {
@@ -32,6 +33,26 @@ namespace VoidLedger.Api
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
+
+            app.UseExceptionHandler(handlerApp =>
+            {
+                handlerApp.Run(async context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                    context.Response.ContentType = "application/problem+json";
+
+                    ProblemDetails problem = new ProblemDetails
+                    {
+                        Title = "UnexpectedError",
+                        Status = StatusCodes.Status500InternalServerError,
+                        Detail = "An unexpected error occurred."
+                    };
+
+                    problem.Extensions["code"] = "Unknown";
+
+                    await context.Response.WriteAsJsonAsync(problem);
+                });
+            });
 
             if (app.Environment.IsDevelopment())
             {

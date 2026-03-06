@@ -6,7 +6,7 @@ using VoidLedger.Api.Http;
 namespace VoidLedger.Api.Controllers
 {
     [ApiController]
-    [Route("")]
+    [Route("deposit")]
     public sealed class FundsController : ControllerBase
     {
         private readonly ILedgerService _ledger;
@@ -16,7 +16,7 @@ namespace VoidLedger.Api.Controllers
             _ledger = ledger;
         }
 
-        [HttpPost("deposit")]
+        [HttpPost]
         public async Task<IActionResult> Deposit(DepositRequest request)
         {
             OpResult result = _ledger.Deposit(request.Amount);

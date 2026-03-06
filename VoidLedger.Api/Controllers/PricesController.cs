@@ -6,7 +6,7 @@ using VoidLedger.Core;
 namespace VoidLedger.Api.Controllers
 {
     [ApiController]
-    [Route("")]
+    [Route("prices")]
     public class PricesController : ControllerBase
     {
         private readonly ILedgerService _ledger;
@@ -16,7 +16,7 @@ namespace VoidLedger.Api.Controllers
             _ledger = ledger;
         }
 
-        [HttpPost("setprice")]
+        [HttpPost]
         public async Task<IActionResult> SetPrice(SetPrice request)
         {
             OpResult result = _ledger.SetPrice(request.Name, request.Price);
