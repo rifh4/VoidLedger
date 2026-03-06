@@ -1,10 +1,9 @@
 name: Dotnet Tests
 
 on:
-  push:
-    branches: [ "DTOs" ]
   pull_request:
     branches: [ "DTOs" ]
+  workflow_dispatch:
 
 concurrency:
   group: dotnet-tests-${{ github.ref }}
