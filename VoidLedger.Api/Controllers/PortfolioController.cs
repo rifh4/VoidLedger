@@ -4,7 +4,7 @@ using VoidLedger.Core;
 namespace VoidLedger.Api.Controllers
 {
     [ApiController]
-    [Route("")]
+    [Route("portfolio")]
     public class PortfolioController : ControllerBase
     {
         private readonly ILedgerService _ledger;
@@ -14,7 +14,7 @@ namespace VoidLedger.Api.Controllers
             _ledger = ledger;
         }
 
-        [HttpGet("portfolio")]
+        [HttpGet]
         public async Task<IActionResult> GetPortfolio()
         {
             return Ok(new { report = _ledger.BuildPortfolioReport() });
