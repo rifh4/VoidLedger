@@ -2,7 +2,7 @@ name: Dotnet Tests
 
 on:
   pull_request:
-    branches: [ "DTOs" ]
+    branches: [ "master" ]
   workflow_dispatch:
 
 concurrency:
