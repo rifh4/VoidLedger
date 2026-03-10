@@ -13,7 +13,7 @@ namespace VoidLedger.Core
         private readonly IClock _clock;
 
         // Persistence boundary (async). EF-backed implementation lives in Api.
-        private readonly IAccountStore _accountStore;
+        private readonly ILedgerStore _ledgerStore;
 
         public LedgerService(
             Account account,
@@ -22,7 +22,7 @@ namespace VoidLedger.Core
             TradeService tradeService,
             List<ActionRecordBase> log,
             IClock clock,
-            IAccountStore accountStore)
+            ILedgerStore ledgerStore)
         {
             _account = account;
             _priceBook = priceBook;
@@ -30,7 +30,7 @@ namespace VoidLedger.Core
             _tradeService = tradeService;
             _log = log;
             _clock = clock;
-            _accountStore = accountStore;
+            _ledgerStore = ledgerStore;
         }
 
         public OpResult SetPrice(string name, decimal price)
@@ -67,49 +67,32 @@ namespace VoidLedger.Core
 
         public async Task<OpResult> DepositAsync(decimal amount)
         {
-            // Keep core behavior unchanged: same validation, same log behavior.
-            bool ok = _account.Deposit(amount);
-            if (!ok)
+            if (amount <= 0)
                 return new OpResult(false, ErrorCode.InvalidAmount, "Invalid deposit amount above 0.", null);
+
+            decimal currentBalance = await _ledgerStore.GetBalanceAsync();
+            decimal newBalance = currentBalance + amount;
+
+            await _ledgerStore.SetBalanceAsync(newBalance);
+            await _ledgerStore.SaveChangesAsync();
 
             ActionRecordBase rec = new DepositAction(amount, _clock.UtcNow);
             _log.Add(rec);
 
-            // Persist ONLY the balance for today.
-            await _accountStore.SetBalanceAsync(_account.Balance);
-
-            string msg = $"Deposited {Formatter.Money(amount)}. Balance: {Formatter.Money(_account.Balance)}";
+            string msg = $"Deposited {Formatter.Money(amount)}. Balance: {Formatter.Money(newBalance)}";
             return new OpResult(true, ErrorCode.None, msg, rec);
         }
 
-        public OpResult Buy(string name, int qty)
+        public async Task<OpResult> SellAsync(string name, int qty)
         {
-            TradeResult tr = _tradeService.Buy(name, qty);
-            if (!tr.Ok)
-                return new OpResult(false, tr.Code, tr.Message, null);
+            OpResult result = await _tradeService.SellAsync(name, qty);
 
-            _priceBook.TryGetPrice(name, out decimal unitPrice);
-            decimal total = unitPrice * qty;
+            if (result.Ok && result.Record is not null)
+            {
+                _log.Add(result.Record);
+            }
 
-            ActionRecordBase rec = new BuyAction(name, qty, unitPrice, total, _clock.UtcNow);
-            _log.Add(rec);
-
-            return new OpResult(true, ErrorCode.None, tr.Message, rec);
-        }
-
-        public OpResult Sell(string name, int qty)
-        {
-            TradeResult tr = _tradeService.Sell(name, qty);
-            if (!tr.Ok)
-                return new OpResult(false, tr.Code, tr.Message, null);
-
-            _priceBook.TryGetPrice(name, out decimal unitPrice);
-            decimal total = unitPrice * qty;
-
-            ActionRecordBase rec = new SellAction(name, qty, unitPrice, total, _clock.UtcNow);
-            _log.Add(rec);
-
-            return new OpResult(true, ErrorCode.None, tr.Message, rec);
+            return result;
         }
 
         public string BuildPortfolioReport()
@@ -194,7 +177,49 @@ namespace VoidLedger.Core
                    $"\nNet cashflow: {Formatter.Money(cashflow)}.";
         }
 
-        public string RunSmokeTests()
+        public async Task<OpResult> SetPriceAsync(string name, decimal price)
+        {
+            string cleanName = (name ?? "").Trim().ToUpperInvariant();
+
+            if (cleanName.Length == 0)
+                return new OpResult(false, ErrorCode.InvalidName, "Name cannot be empty.", null);
+
+            if (price <= 0)
+                return new OpResult(false, ErrorCode.InvalidAmount, "Price must be above 0.", null);
+
+            await _ledgerStore.SetPriceAsync(cleanName, price);
+            await _ledgerStore.SaveChangesAsync();
+
+            string msg = $"Price for {cleanName} set to {Formatter.Money(price)}";
+            ActionRecordBase rec = new SetPriceAction(cleanName, price, _clock.UtcNow);
+            _log.Add(rec);
+
+            return new OpResult(true, ErrorCode.None, msg, rec);
+        }
+
+        public async Task<OpResult> BuyAsync(string name, int qty)
+        {
+            OpResult result = await _tradeService.BuyAsync(name, qty);
+
+            if (result.Ok && result.Record is not null)
+            {
+                _log.Add(result.Record);
+            }
+
+            return result;
+        }
+
+
+
+
+
+
+
+
+
+
+
+        /*public string RunSmokeTests()
         {
             var sb = new StringBuilder();
             int pass = 0, fail = 0;
@@ -225,7 +250,7 @@ namespace VoidLedger.Core
                 IClock clock = new FixedClock(new DateTime(2026, 2, 26, 0, 0, 0, DateTimeKind.Utc));
 
                 // Use fake store so smoke tests don't require EF/SQL.
-                IAccountStore store = new FakeAccountStore();
+                ILedgerStore store = new FakeAccountStore();
 
                 LedgerService ledger = new(acct, priceBook, portfolio, trade, log, clock, store);
                 return (acct, prices, holdings, log, ledger);
@@ -414,5 +439,6 @@ namespace VoidLedger.Core
                 return Task.CompletedTask;
             }
         }
+        */
     }
 }

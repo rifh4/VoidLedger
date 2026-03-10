@@ -26,33 +26,39 @@ namespace VoidLedger.Api
             builder.Services.AddScoped<TradeService>();
             builder.Services.AddScoped<ILedgerService, LedgerService>();
             builder.Services.AddDbContext<VoidLedgerDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("VoidLedgerDb")));
+                options.UseSqlServer(
+                    builder.Configuration.GetConnectionString("VoidLedgerDb"),
+                        sqlOptions => sqlOptions.EnableRetryOnFailure()));
             builder.Services.AddScoped<IAccountStore, EfAccountStore>();
+            builder.Services.AddScoped<ILedgerStore, EfLedgerStore>();
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             var app = builder.Build();
 
-            app.UseExceptionHandler(handlerApp =>
+            if (!app.Environment.IsDevelopment())
             {
-                handlerApp.Run(async context =>
+                app.UseExceptionHandler(handlerApp =>
                 {
-                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                    context.Response.ContentType = "application/problem+json";
-
-                    ProblemDetails problem = new ProblemDetails
+                    handlerApp.Run(async context =>
                     {
-                        Title = "UnexpectedError",
-                        Status = StatusCodes.Status500InternalServerError,
-                        Detail = "An unexpected error occurred."
-                    };
+                        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                        context.Response.ContentType = "application/problem+json";
 
-                    problem.Extensions["code"] = "Unknown";
+                        ProblemDetails problem = new ProblemDetails
+                        {
+                            Title = "UnexpectedError",
+                            Status = StatusCodes.Status500InternalServerError,
+                            Detail = "An unexpected error occurred."
+                        };
 
-                    await context.Response.WriteAsJsonAsync(problem);
+                        problem.Extensions["code"] = "Unknown";
+
+                        await context.Response.WriteAsJsonAsync(problem);
+                    });
                 });
-            });
+            }
 
             if (app.Environment.IsDevelopment())
             {

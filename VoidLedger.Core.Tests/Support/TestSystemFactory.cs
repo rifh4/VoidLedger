@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace VoidLedger.Core.Tests.Support
+﻿namespace VoidLedger.Core.Tests.Support
 {
     internal static class TestSystemFactory
     {
