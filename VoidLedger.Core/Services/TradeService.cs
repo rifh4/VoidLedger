@@ -4,7 +4,6 @@ namespace VoidLedger.Core;
 
 public sealed class TradeService: ITradeService
 {
-    // Encapsulates buy/sell rules so the ledger service can focus on orchestration + logging.
     private readonly ILedgerStore _ledgerStore;
     private readonly IClock _clock;
 

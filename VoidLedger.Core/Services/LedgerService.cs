@@ -5,7 +5,6 @@ namespace VoidLedger.Core
 {
     public class LedgerService : ILedgerService
     {
-        // Application-layer orchestrator: calls domain services + appends action log on success.
         private readonly ITradeService _tradeService;
         private readonly IClock _clock;
 

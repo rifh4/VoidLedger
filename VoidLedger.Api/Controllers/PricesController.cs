@@ -17,8 +17,7 @@ namespace VoidLedger.Api.Controllers
         }
 
         [HttpPost]
-        [HttpPost]
-        public async Task<IActionResult> SetPrice(SetPrice request)
+        public async Task<IActionResult> SetPrice(SetPriceRequest request)
         {
             OpResult result = await _ledger.SetPriceAsync(request.Name, request.Price);
             return OpResultMapper.ToActionResult(result);

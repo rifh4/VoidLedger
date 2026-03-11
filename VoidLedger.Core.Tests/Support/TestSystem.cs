@@ -3,13 +3,13 @@
     internal sealed class TestSystem
     {
         internal LedgerService LedgerService { get; }
-        internal FakeAccountStore Store { get; }
+        internal FakeLedgerStore Store { get; }
 
         internal decimal Balance => Store.BalanceSnapshot;
         internal int ActionCount => Store.ActionsSnapshot.Count;
         internal IReadOnlyList<ActionRecordBase> ActionRecords => Store.ActionsSnapshot;
 
-        internal TestSystem(LedgerService ledgerService, FakeAccountStore store)
+        internal TestSystem(LedgerService ledgerService, FakeLedgerStore store)
         {
             LedgerService = ledgerService;
             Store = store;

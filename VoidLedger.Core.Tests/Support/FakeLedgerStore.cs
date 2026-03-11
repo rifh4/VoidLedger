@@ -1,6 +1,6 @@
 ﻿namespace VoidLedger.Core.Tests.Support
 {
-    internal sealed class FakeAccountStore : ILedgerStore
+    internal sealed class FakeLedgerStore : ILedgerStore
     {
         private decimal _balance;
         private readonly Dictionary<string, decimal> _prices = new();
@@ -9,7 +9,7 @@
         internal decimal BalanceSnapshot => _balance;
         internal IReadOnlyList<ActionRecordBase> ActionsSnapshot => _actions;
 
-        public FakeAccountStore(decimal startingBalance)
+        public FakeLedgerStore(decimal startingBalance)
         {
             _balance = startingBalance;
         }
