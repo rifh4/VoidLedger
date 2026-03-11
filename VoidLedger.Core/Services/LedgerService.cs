@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-using System.Linq;
-using System.Text;
+﻿using System.Text;
 using VoidLedger.Core.Services;
 using VoidLedger.Core.Services.Models;
 using VoidLedger.Core.Stores;
@@ -203,6 +201,34 @@ namespace VoidLedger.Core
             decimal totalAccountValue = cashBalance + totalPortfolioValue;
             return new PortfolioValuation(ordered, cashBalance, totalPortfolioValue, totalAccountValue);
 
+        }
+
+        public Task<List<ActionRecordBase>> GetRecentActionsAsync(int take)
+        {
+            return _ledgerStore.GetRecentActionsAsync(take);
+        }
+
+        public Task<List<ActionRecordBase>> GetActionsByTypeAsync(ActionType type, int take)
+        {
+            return _ledgerStore.GetActionsByTypeAsync(type, take);
+        }
+
+        public async Task<TotalsSnapshot> GetTotalsAsync()
+        {
+            List<ActionRecordBase> actions = await _ledgerStore.GetAllActionsAsync();
+
+            decimal totalDeposited = actions.OfType<DepositAction>().Sum(a => a.Amount);
+            decimal totalSpentOnBuys = actions.OfType<BuyAction>().Sum(a => a.Total);
+            decimal totalEarnedFromSells = actions.OfType<SellAction>().Sum(a => a.Total);
+            decimal netCashflow = totalDeposited - totalSpentOnBuys + totalEarnedFromSells;
+
+            return new TotalsSnapshot(
+                ActionCount: actions.Count,
+                TotalDeposited: totalDeposited,
+                TotalSpentOnBuys: totalSpentOnBuys,
+                TotalEarnedFromSells: totalEarnedFromSells,
+                NetCashflow: netCashflow
+            );
         }
 
     }

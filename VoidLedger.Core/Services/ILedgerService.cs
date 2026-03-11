@@ -15,4 +15,7 @@ public interface ILedgerService
     Task<string> BuildTotalsReportAsync();
     Task<List<PriceSnapshot>> GetPricesAsync();
     Task<PortfolioValuation> GetPortfolioValuationAsync();
+    Task<List<ActionRecordBase>> GetRecentActionsAsync(int take);
+    Task<List<ActionRecordBase>> GetActionsByTypeAsync(ActionType type, int take);
+    Task<TotalsSnapshot> GetTotalsAsync();
 }

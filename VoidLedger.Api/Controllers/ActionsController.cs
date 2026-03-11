@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using VoidLedger.Api.Contracts;
+using VoidLedger.Api.Http;
 using VoidLedger.Core;
 
 namespace VoidLedger.Api.Controllers
@@ -30,8 +32,18 @@ namespace VoidLedger.Api.Controllers
                 return new ObjectResult(pd) { StatusCode = 400 };
             }
 
-            string report = await _ledger.BuildRecentActionsReportAsync(take);
-            return Ok(new { report });
+            List<ActionRecordBase> actions = await _ledger.GetRecentActionsAsync(take);
+
+            List<ActionItemResponse> items = actions
+                .Select(ActionItemMapper.Map)
+                .ToList();
+
+            RecentActionsResponse response = new(
+                Count: items.Count,
+                Items: items
+            );
+
+            return Ok(response);
         }
     }
 }
