@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using VoidLedger.Api.Contracts;
 using VoidLedger.Core;
+using VoidLedger.Core.Services.Models;
 
 namespace VoidLedger.Api.Controllers
 {
@@ -20,5 +22,21 @@ namespace VoidLedger.Api.Controllers
             string report = await _ledger.BuildPortfolioReportAsync();
             return Ok(report);
         }
+
+        [HttpGet("valuation")]
+        public async Task<ActionResult<PortfolioValuationResponse>> GetPortfolioValuation()
+        {
+            PortfolioValuation valuation = await _ledger.GetPortfolioValuationAsync();
+            List<PortfolioPositionResponse> positions = new();
+            foreach (PortfolioPositionValuation p in valuation.Positions)
+            {
+                positions.Add(new PortfolioPositionResponse(p.Name, p.Quantity, p.CurrentPrice, p.PositionValue));
+            }
+
+            PortfolioValuationResponse response = new(positions, valuation.CashBalance, valuation.TotalPortfolioValue, valuation.TotalAccountValue);
+            return Ok(response);
+
+        }
+
     }
 }

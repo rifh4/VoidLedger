@@ -1,5 +1,8 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Linq;
+using System.Text;
 using VoidLedger.Core.Services;
+using VoidLedger.Core.Services.Models;
 using VoidLedger.Core.Stores;
 
 namespace VoidLedger.Core
@@ -163,6 +166,43 @@ namespace VoidLedger.Core
                    $"\nSpent on buys: {Formatter.Money(totalSpentOnBuys)}" +
                    $"\nEarned from sells: {Formatter.Money(totalEarnedFromSells)}" +
                    $"\nNet cashflow: {Formatter.Money(cashflow)}.";
+        }
+
+        public async Task<PortfolioValuation> GetPortfolioValuationAsync()
+        {
+            decimal cashBalance = await _ledgerStore.GetBalanceAsync();
+
+            List<HoldingSnapshot> holdings = await _ledgerStore.GetHoldingsAsync();
+            List<PriceSnapshot> prices = await _ledgerStore.GetPricesAsync();
+
+            Dictionary<string, decimal> priceByName = prices.ToDictionary(p => p.Name, p => p.Price);
+            List<PortfolioPositionValuation> positions = new();
+
+            foreach (HoldingSnapshot holding in holdings)
+            {
+                string name = holding.Name;
+                int quantity = holding.Quantity;
+                bool hasPrice = priceByName.TryGetValue(name, out decimal price);
+
+                if (hasPrice)
+                {
+                    decimal? currentPrice = price;
+                    decimal? positionValue = price * quantity;
+                    positions.Add(new PortfolioPositionValuation(name, quantity, currentPrice, positionValue));
+                }
+                else
+                {
+                    decimal? currentPrice = null;
+                    decimal? positionValue = null;
+                    positions.Add(new PortfolioPositionValuation(name, quantity, currentPrice, positionValue));
+                }
+            }
+
+            List<PortfolioPositionValuation> ordered = positions.OrderBy(p => p.Name).ToList();
+            decimal totalPortfolioValue = ordered.Where(p => p.PositionValue is not null).Select(p => p.PositionValue!.Value).Sum();
+            decimal totalAccountValue = cashBalance + totalPortfolioValue;
+            return new PortfolioValuation(ordered, cashBalance, totalPortfolioValue, totalAccountValue);
+
         }
 
     }

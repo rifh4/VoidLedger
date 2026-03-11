@@ -1,4 +1,5 @@
-﻿using VoidLedger.Core.Stores;
+﻿using VoidLedger.Core.Services.Models;
+using VoidLedger.Core.Stores;
 
 namespace VoidLedger.Core;
 
@@ -13,4 +14,5 @@ public interface ILedgerService
     Task<string> BuildActionsByTypeReportAsync(ActionType type, int n);
     Task<string> BuildTotalsReportAsync();
     Task<List<PriceSnapshot>> GetPricesAsync();
+    Task<PortfolioValuation> GetPortfolioValuationAsync();
 }
