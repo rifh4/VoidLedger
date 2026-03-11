@@ -1,5 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using VoidLedger.Api.Contracts;
+using VoidLedger.Api.Http;
 using VoidLedger.Core;
+using VoidLedger.Core.Services.Models;
 
 namespace VoidLedger.Api.Controllers
 {
@@ -14,8 +17,17 @@ namespace VoidLedger.Api.Controllers
         [HttpGet("totals")]
         public async Task<IActionResult> Totals()
         {
-            string report = await _ledger.BuildTotalsReportAsync();
-            return Ok(new { report });
+            TotalsSnapshot totals = await _ledger.GetTotalsAsync();
+
+            TotalsResponse response = new(
+                ActionCount: totals.ActionCount,
+                TotalDeposited: totals.TotalDeposited,
+                TotalSpentOnBuys: totals.TotalSpentOnBuys,
+                TotalEarnedFromSells: totals.TotalEarnedFromSells,
+                NetCashflow: totals.NetCashflow
+            );
+
+            return Ok(response);
         }
 
         [HttpGet("actions/by-type")]
@@ -23,7 +35,13 @@ namespace VoidLedger.Api.Controllers
         {
             if (take <= 0)
             {
-                var pd = new ProblemDetails { Title = "InvalidTake", Detail = "The 'take' query parameter must be a positive integer.", Status = 400 };
+                var pd = new ProblemDetails
+                {
+                    Title = "InvalidTake",
+                    Detail = "The 'take' query parameter must be a positive integer.",
+                    Status = 400
+                };
+
                 pd.Extensions["code"] = "InvalidTake";
                 return new ObjectResult(pd) { StatusCode = 400 };
             }
@@ -36,12 +54,24 @@ namespace VoidLedger.Api.Controllers
                     Detail = $"The 'type' query parameter must be one of: {string.Join(", ", Enum.GetNames<ActionType>())}.",
                     Status = 400
                 };
+
                 pd.Extensions["code"] = "InvalidActionType";
                 return new ObjectResult(pd) { StatusCode = 400 };
             }
 
-            string report = await _ledger.BuildActionsByTypeReportAsync(actionType, take);
-            return Ok(new { report });
+            List<ActionRecordBase> actions = await _ledger.GetActionsByTypeAsync(actionType, take);
+
+            List<ActionItemResponse> items = actions
+                .Select(ActionItemMapper.Map)
+                .ToList();
+
+            ActionsByTypeResponse response = new(
+                Type: actionType,
+                Count: items.Count,
+                Items: items
+            );
+
+            return Ok(response);
         }
     }
 }

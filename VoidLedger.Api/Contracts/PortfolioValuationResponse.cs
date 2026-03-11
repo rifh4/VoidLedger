@@ -5,5 +5,5 @@
         decimal CashBalance, 
         decimal TotalPortfolioValue, 
         decimal TotalAccountValue
-        );
+    );
 }

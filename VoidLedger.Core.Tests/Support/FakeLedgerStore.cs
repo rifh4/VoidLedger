@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using VoidLedger.Core.Stores;
+﻿using VoidLedger.Core.Stores;
 
 namespace VoidLedger.Core.Tests.Support
 {
