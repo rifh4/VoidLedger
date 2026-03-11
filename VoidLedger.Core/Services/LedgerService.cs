@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using VoidLedger.Core.Services;
+using VoidLedger.Core.Stores;
 
 namespace VoidLedger.Core
 {
@@ -54,6 +55,11 @@ namespace VoidLedger.Core
 
             string msg = $"Price for {cleanName} set to {Formatter.Money(price)}";
             return new OpResult(true, ErrorCode.None, msg, rec);
+        }
+
+        public Task<List<PriceSnapshot>> GetPricesAsync()
+        {
+            return _ledgerStore.GetPricesAsync();
         }
 
         public async Task<OpResult> BuyAsync(string name, int qty)

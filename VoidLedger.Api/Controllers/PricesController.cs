@@ -2,6 +2,7 @@
 using VoidLedger.Api.Contracts;
 using VoidLedger.Api.Http;
 using VoidLedger.Core;
+using VoidLedger.Core.Stores;
 
 namespace VoidLedger.Api.Controllers
 {
@@ -22,5 +23,14 @@ namespace VoidLedger.Api.Controllers
             OpResult result = await _ledger.SetPriceAsync(request.Name, request.Price);
             return OpResultMapper.ToActionResult(result);
         }
+
+        [HttpGet]
+        public async Task<ActionResult<List<PriceResponse>>> GetPrices()
+        {
+            List<PriceSnapshot> prices = await _ledger.GetPricesAsync();
+            List<PriceResponse> response = prices.Select(p => new PriceResponse(p.Name, p.Price)).ToList();
+            return Ok(response);
+        }
+
     }
 }

@@ -1,8 +1,9 @@
-﻿using VoidLedger.Core.Tests.Support;
+﻿using VoidLedger.Core.Stores;
+using VoidLedger.Core.Tests.Support;
 
 namespace VoidLedger.Core.Tests.Services
 {
-    public sealed class LedgerServiceSetPriceTests
+    public sealed class LedgerServicePriceTests
     {
         [Fact]
         public async Task SetPrice_WhenValid_ShouldLogAndSetPrice()
@@ -30,6 +31,26 @@ namespace VoidLedger.Core.Tests.Services
             Assert.Null(result.Record);
             Assert.Equal(0, system.ActionCount);
             Assert.Equal(0m, system.GetPrice("WATER"));
+        }
+
+        [Fact]
+        public async Task GetPrices_WhenMultiplePrices_ShouldReturnOrderedByNameAndNormalized()
+        {
+            TestSystem system = TestSystemFactory.Create();
+
+            await system.LedgerService.SetPriceAsync("abc", 1m);
+            await system.LedgerService.SetPriceAsync(" AAA ", 2m);
+            await system.LedgerService.SetPriceAsync("water", 3m);
+
+            List<PriceSnapshot> prices = await system.LedgerService.GetPricesAsync();
+
+            Assert.Equal(3, prices.Count);
+            Assert.Equal("AAA", prices[0].Name);
+            Assert.Equal("ABC", prices[1].Name);
+            Assert.Equal("WATER", prices[2].Name);
+            Assert.Equal(2m, prices[0].Price);
+            Assert.Equal(1m, prices[1].Price);
+            Assert.Equal(3m, prices[2].Price);
         }
     }
 }

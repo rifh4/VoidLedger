@@ -1,4 +1,7 @@
-﻿namespace VoidLedger.Core.Tests.Support
+﻿using System.Linq;
+using VoidLedger.Core.Stores;
+
+namespace VoidLedger.Core.Tests.Support
 {
     internal sealed class FakeLedgerStore : ILedgerStore
     {
@@ -29,6 +32,16 @@
         {
             bool found = _prices.TryGetValue(name, out decimal price);
             return Task.FromResult(found ? (decimal?)price : null);
+        }
+
+        public Task<List<PriceSnapshot>> GetPricesAsync()
+        {
+            List<PriceSnapshot> prices = _prices
+                .OrderBy(kvp => kvp.Key)
+                .Select(kvp => new PriceSnapshot(kvp.Key, kvp.Value))
+                .ToList();
+
+            return Task.FromResult(prices);
         }
 
         public Task SetPriceAsync(string name, decimal price)

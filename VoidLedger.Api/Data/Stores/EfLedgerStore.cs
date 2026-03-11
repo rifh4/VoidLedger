@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using VoidLedger.Api.Data.Entities;
 using VoidLedger.Core;
+using VoidLedger.Core.Stores;
 
 namespace VoidLedger.Api.Data.Stores
 {
@@ -149,6 +150,15 @@ namespace VoidLedger.Api.Data.Stores
                 .ToListAsync();
 
             return holdings;
+        }
+
+        public async Task<List<PriceSnapshot>> GetPricesAsync()
+        {
+            return await _dbContext.Prices
+                .AsNoTracking()
+                .OrderBy(p => p.Name)
+                .Select(p => new PriceSnapshot(p.Name, p.Price))
+                .ToListAsync();
         }
 
         public async Task SaveChangesAsync()
