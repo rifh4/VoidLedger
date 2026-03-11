@@ -5,11 +5,11 @@ namespace VoidLedger.Core.Tests.Services
     public sealed class LedgerServiceValidationTests
     {
         [Fact]
-        public void Buy_WhenNameInvalid_ShouldNotLogAndNotBuy()
+        public async Task Buy_WhenNameInvalid_ShouldNotLogAndNotBuy()
         {
             TestSystem system = TestSystemFactory.Create();
 
-            OpResult result = system.LedgerService.Buy("", 1);
+            OpResult result = await system.LedgerService.BuyAsync("", 1);
 
             Assert.False(result.Ok);
             Assert.Equal(ErrorCode.InvalidName, result.Code);

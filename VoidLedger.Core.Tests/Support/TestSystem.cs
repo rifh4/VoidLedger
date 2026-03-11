@@ -3,43 +3,26 @@
     internal sealed class TestSystem
     {
         internal LedgerService LedgerService { get; }
-        internal Account Account { get; }
-        internal Portfolio Portfolio { get; }
-        internal PriceBook PriceBook { get; }
-        internal List<ActionRecordBase> ActionRecords { get; }
-        internal decimal Balance => Account.Balance;
-        internal int ActionCount => ActionRecords.Count;
+        internal FakeAccountStore Store { get; }
 
-        internal TestSystem(LedgerService ledgerService, 
-            Account account, 
-            Portfolio portfolio, 
-            PriceBook priceBook, 
-            List<ActionRecordBase> actionRecords)
+        internal decimal Balance => Store.BalanceSnapshot;
+        internal int ActionCount => Store.ActionsSnapshot.Count;
+        internal IReadOnlyList<ActionRecordBase> ActionRecords => Store.ActionsSnapshot;
+
+        internal TestSystem(LedgerService ledgerService, FakeAccountStore store)
         {
             LedgerService = ledgerService;
-            Account = account;
-            Portfolio = portfolio;
-            PriceBook = priceBook;
-            ActionRecords = actionRecords;
-
+            Store = store;
         }
 
         internal int GetHoldingQty(string name)
         {
-            if (Portfolio.TryGetQty(name, out int qty))
-            {
-                return qty;
-            }
-            return 0;
+            return Store.GetHoldingQtySnapshot(name);
         }
 
         internal decimal GetPrice(string name)
         {
-            if (PriceBook.TryGetPrice(name, out decimal price))
-            {
-                return price;
-            }
-            return 0;
+            return Store.GetPriceSnapshot(name);
         }
     }
 }

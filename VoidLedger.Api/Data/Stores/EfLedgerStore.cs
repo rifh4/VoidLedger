@@ -156,24 +156,143 @@ namespace VoidLedger.Api.Data.Stores
             await _dbContext.SaveChangesAsync();
         }
 
-        public Task AddActionAsync(ActionRecordBase action)
+        public async Task AddActionAsync(ActionRecordBase action)
         {
-            throw new NotImplementedException();
+            AccountEntity account = await GetOrCreatePersistedDefaultAccountAsync();
+
+            ActionLogEntity entity = action switch
+            {
+                DepositAction deposit => new ActionLogEntity
+                {
+                    AccountId = account.Id,
+                    Type = deposit.Type,
+                    AtUtc = deposit.At,
+                    Amount = deposit.Amount
+                },
+
+                SetPriceAction setPrice => new ActionLogEntity
+                {
+                    AccountId = account.Id,
+                    Type = setPrice.Type,
+                    AtUtc = setPrice.At,
+                    Name = setPrice.Name,
+                    UnitPrice = setPrice.Price
+                },
+
+                BuyAction buy => new ActionLogEntity
+                {
+                    AccountId = account.Id,
+                    Type = buy.Type,
+                    AtUtc = buy.At,
+                    Name = buy.Name,
+                    Quantity = buy.Qty,
+                    UnitPrice = buy.UnitPrice,
+                    Total = buy.Total
+                },
+
+                SellAction sell => new ActionLogEntity
+                {
+                    AccountId = account.Id,
+                    Type = sell.Type,
+                    AtUtc = sell.At,
+                    Name = sell.Name,
+                    Quantity = sell.Qty,
+                    UnitPrice = sell.UnitPrice,
+                    Total = sell.Total
+                },
+
+                _ => throw new NotSupportedException($"Unsupported action type: {action.GetType().Name}")
+            };
+
+            _dbContext.ActionLogs.Add(entity);
         }
 
-        public Task<List<ActionRecordBase>> GetRecentActionsAsync(int take)
+        private static ActionRecordBase MapAction(ActionLogEntity entity)
         {
-            throw new NotImplementedException();
+            return entity.Type switch
+            {
+                ActionType.Deposit => new DepositAction(
+                    entity.Amount ?? 0m,
+                    entity.AtUtc),
+
+                ActionType.SetPrice => new SetPriceAction(
+                    entity.Name ?? "",
+                    entity.UnitPrice ?? 0m,
+                    entity.AtUtc),
+
+                ActionType.Buy => new BuyAction(
+                    entity.Name ?? "",
+                    entity.Quantity ?? 0,
+                    entity.UnitPrice ?? 0m,
+                    entity.Total ?? 0m,
+                    entity.AtUtc),
+
+                ActionType.Sell => new SellAction(
+                    entity.Name ?? "",
+                    entity.Quantity ?? 0,
+                    entity.UnitPrice ?? 0m,
+                    entity.Total ?? 0m,
+                    entity.AtUtc),
+
+                _ => throw new NotSupportedException($"Unsupported action type: {entity.Type}")
+            };
         }
 
-        public Task<List<ActionRecordBase>> GetActionsByTypeAsync(ActionType type, int take)
+        public async Task<List<ActionRecordBase>> GetRecentActionsAsync(int take)
         {
-            throw new NotImplementedException();
+            AccountEntity account = await GetOrCreatePersistedDefaultAccountAsync();
+
+            List<ActionLogEntity> rows = await _dbContext.ActionLogs
+                .AsNoTracking()
+                .Where(a => a.AccountId == account.Id)
+                .OrderByDescending(a => a.AtUtc)
+                .Take(take)
+                .ToListAsync();
+
+            rows.Reverse();
+
+            List<ActionRecordBase> actions = rows
+                .Select(MapAction)
+                .ToList();
+
+            return actions;
         }
 
-        public Task<List<ActionRecordBase>> GetAllActionsAsync()
+        public async Task<List<ActionRecordBase>> GetActionsByTypeAsync(ActionType type, int take)
         {
-            throw new NotImplementedException();
+            AccountEntity account = await GetOrCreatePersistedDefaultAccountAsync();
+
+            List<ActionLogEntity> rows = await _dbContext.ActionLogs
+                .AsNoTracking()
+                .Where(a => a.AccountId == account.Id && a.Type == type)
+                .OrderByDescending(a => a.AtUtc)
+                .Take(take)
+                .ToListAsync();
+
+            rows.Reverse();
+
+            List<ActionRecordBase> actions = rows
+                .Select(MapAction)
+                .ToList();
+
+            return actions;
+        }
+
+        public async Task<List<ActionRecordBase>> GetAllActionsAsync()
+        {
+            AccountEntity account = await GetOrCreatePersistedDefaultAccountAsync();
+
+            List<ActionLogEntity> rows = await _dbContext.ActionLogs
+                .AsNoTracking()
+                .Where(a => a.AccountId == account.Id)
+                .OrderBy(a => a.AtUtc)
+                .ToListAsync();
+
+            List<ActionRecordBase> actions = rows
+                .Select(MapAction)
+                .ToList();
+
+            return actions;
         }
 
     }

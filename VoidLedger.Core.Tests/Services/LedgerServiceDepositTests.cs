@@ -5,21 +5,26 @@ namespace VoidLedger.Core.Tests.Services
     public sealed class LedgerServiceDepositTests
     {
         [Fact]
-        public void Deposit_WhenValid_ShouldLogAndDeposit()
+        public async Task Deposit_WhenValid_ShouldLogAndDeposit()
         {
             TestSystem system = TestSystemFactory.Create();
-            OpResult result = system.LedgerService.Deposit(100m);
+
+            OpResult result = await system.LedgerService.DepositAsync(100m);
+
             Assert.True(result.Ok);
             Assert.Equal(ErrorCode.None, result.Code);
             Assert.NotNull(result.Record);
             Assert.Equal(100m, system.Balance);
             Assert.Equal(1, system.ActionCount);
         }
+
         [Fact]
-        public void Deposit_WhenInvalid_ShouldNotLogAndNotDeposit()
+        public async Task Deposit_WhenInvalid_ShouldNotLogAndNotDeposit()
         {
             TestSystem system = TestSystemFactory.Create();
-            OpResult result = system.LedgerService.Deposit(-1m);
+
+            OpResult result = await system.LedgerService.DepositAsync(-1m);
+
             Assert.False(result.Ok);
             Assert.Equal(ErrorCode.InvalidAmount, result.Code);
             Assert.Null(result.Record);

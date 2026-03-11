@@ -5,17 +5,11 @@ namespace VoidLedger.Core;
 public sealed class TradeService: ITradeService
 {
     // Encapsulates buy/sell rules so the ledger service can focus on orchestration + logging.
-    private readonly Account _account;
-    private readonly PriceBook _prices;
-    private readonly Portfolio _portfolio;
     private readonly ILedgerStore _ledgerStore;
     private readonly IClock _clock;
 
-    public TradeService(Account account, PriceBook prices, Portfolio portfolio, ILedgerStore ledgerStore,IClock clock)
+    public TradeService(ILedgerStore ledgerStore,IClock clock)
     {
-        _account = account;
-        _prices = prices;
-        _portfolio = portfolio;
         _ledgerStore = ledgerStore;
         _clock = clock;
     }
@@ -78,7 +72,7 @@ public sealed class TradeService: ITradeService
 
         await _ledgerStore.SetBalanceAsync(result.NewBalance!.Value);
         await _ledgerStore.SetHoldingQuantityAsync(result.Name!, result.NewHoldingQuantity!.Value);
-        await _ledgerStore.SaveChangesAsync();
+        
 
         ActionRecordBase rec = new BuyAction(
             result.Name!,
@@ -87,6 +81,8 @@ public sealed class TradeService: ITradeService
             result.Total!.Value,
             _clock.UtcNow);
 
+        await _ledgerStore.AddActionAsync(rec);
+        await _ledgerStore.SaveChangesAsync();
         return new OpResult(true, ErrorCode.None, result.Message, rec);
     }
 
@@ -154,7 +150,7 @@ public sealed class TradeService: ITradeService
 
         await _ledgerStore.SetBalanceAsync(result.NewBalance!.Value);
         await _ledgerStore.SetHoldingQuantityAsync(result.Name!, result.NewHoldingQuantity!.Value);
-        await _ledgerStore.SaveChangesAsync();
+        
 
         ActionRecordBase rec = new SellAction(
             result.Name!,
@@ -163,6 +159,8 @@ public sealed class TradeService: ITradeService
             result.Total!.Value,
             _clock.UtcNow);
 
+        await _ledgerStore.AddActionAsync(rec);
+        await _ledgerStore.SaveChangesAsync();
         return new OpResult(true, ErrorCode.None, result.Message, rec);
     }
 }
