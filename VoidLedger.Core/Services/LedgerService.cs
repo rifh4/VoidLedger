@@ -1,191 +1,157 @@
 ﻿using System.Text;
+using VoidLedger.Core.Services;
 
 namespace VoidLedger.Core
 {
     public class LedgerService : ILedgerService
     {
         // Application-layer orchestrator: calls domain services + appends action log on success.
-        private readonly Account _account;
-        private readonly PriceBook _priceBook;
-        private readonly Portfolio _portfolio;
-        private readonly TradeService _tradeService;
-        private readonly List<ActionRecordBase> _log;
+        private readonly ITradeService _tradeService;
         private readonly IClock _clock;
 
         // Persistence boundary (async). EF-backed implementation lives in Api.
-        private readonly IAccountStore _accountStore;
+        private readonly ILedgerStore _ledgerStore;
 
-        public LedgerService(
-            Account account,
-            PriceBook priceBook,
-            Portfolio portfolio,
-            TradeService tradeService,
-            List<ActionRecordBase> log,
-            IClock clock,
-            IAccountStore accountStore)
+        public LedgerService(ITradeService tradeService, IClock clock, ILedgerStore ledgerStore)
         {
-            _account = account;
-            _priceBook = priceBook;
-            _portfolio = portfolio;
             _tradeService = tradeService;
-            _log = log;
             _clock = clock;
-            _accountStore = accountStore;
-        }
-
-        public OpResult SetPrice(string name, decimal price)
-        {
-            string cleanName = (name ?? "").Trim().ToUpperInvariant();
-            if (cleanName.Length == 0)
-                return new OpResult(false, ErrorCode.InvalidName, "Name cannot be empty.", null);
-
-            bool ok = _priceBook.SetPrice(cleanName, price, out string msg);
-            if (!ok)
-            {
-                // Map price validation to InvalidAmount; otherwise Unknown.
-                ErrorCode code = price <= 0 ? ErrorCode.InvalidAmount : ErrorCode.Unknown;
-                return new OpResult(false, code, msg, null);
-            }
-
-            ActionRecordBase rec = new SetPriceAction(cleanName, price, _clock.UtcNow);
-            _log.Add(rec);
-            return new OpResult(true, ErrorCode.None, msg, rec);
-        }
-
-        public OpResult Deposit(decimal amount)
-        {
-            bool ok = _account.Deposit(amount);
-            if (!ok)
-                return new OpResult(false, ErrorCode.InvalidAmount, "Invalid deposit amount above 0.", null);
-
-            ActionRecordBase rec = new DepositAction(amount, _clock.UtcNow);
-            _log.Add(rec);
-
-            string msg = $"Deposited {Formatter.Money(amount)}. Balance: {Formatter.Money(_account.Balance)}";
-            return new OpResult(true, ErrorCode.None, msg, rec);
+            _ledgerStore = ledgerStore;
         }
 
         public async Task<OpResult> DepositAsync(decimal amount)
         {
-            // Keep core behavior unchanged: same validation, same log behavior.
-            bool ok = _account.Deposit(amount);
-            if (!ok)
+            if (amount <= 0)
                 return new OpResult(false, ErrorCode.InvalidAmount, "Invalid deposit amount above 0.", null);
 
+            decimal currentBalance = await _ledgerStore.GetBalanceAsync();
+            decimal newBalance = currentBalance + amount;
+
             ActionRecordBase rec = new DepositAction(amount, _clock.UtcNow);
-            _log.Add(rec);
 
-            // Persist ONLY the balance for today.
-            await _accountStore.SetBalanceAsync(_account.Balance);
+            await _ledgerStore.SetBalanceAsync(newBalance);
+            await _ledgerStore.AddActionAsync(rec);
+            await _ledgerStore.SaveChangesAsync();
 
-            string msg = $"Deposited {Formatter.Money(amount)}. Balance: {Formatter.Money(_account.Balance)}";
+            string msg = $"Deposited {Formatter.Money(amount)}. Balance: {Formatter.Money(newBalance)}";
             return new OpResult(true, ErrorCode.None, msg, rec);
         }
 
-        public OpResult Buy(string name, int qty)
+        public async Task<OpResult> SetPriceAsync(string name, decimal price)
         {
-            TradeResult tr = _tradeService.Buy(name, qty);
-            if (!tr.Ok)
-                return new OpResult(false, tr.Code, tr.Message, null);
+            string cleanName = (name ?? "").Trim().ToUpperInvariant();
 
-            _priceBook.TryGetPrice(name, out decimal unitPrice);
-            decimal total = unitPrice * qty;
+            if (cleanName.Length == 0)
+                return new OpResult(false, ErrorCode.InvalidName, "Name cannot be empty.", null);
 
-            ActionRecordBase rec = new BuyAction(name, qty, unitPrice, total, _clock.UtcNow);
-            _log.Add(rec);
+            if (price <= 0)
+                return new OpResult(false, ErrorCode.InvalidAmount, "Price must be above 0.", null);
 
-            return new OpResult(true, ErrorCode.None, tr.Message, rec);
+            ActionRecordBase rec = new SetPriceAction(cleanName, price, _clock.UtcNow);
+
+            await _ledgerStore.SetPriceAsync(cleanName, price);
+            await _ledgerStore.AddActionAsync(rec);
+            await _ledgerStore.SaveChangesAsync();
+
+            string msg = $"Price for {cleanName} set to {Formatter.Money(price)}";
+            return new OpResult(true, ErrorCode.None, msg, rec);
         }
 
-        public OpResult Sell(string name, int qty)
+        public async Task<OpResult> BuyAsync(string name, int qty)
         {
-            TradeResult tr = _tradeService.Sell(name, qty);
-            if (!tr.Ok)
-                return new OpResult(false, tr.Code, tr.Message, null);
+            OpResult result = await _tradeService.BuyAsync(name, qty);
 
-            _priceBook.TryGetPrice(name, out decimal unitPrice);
-            decimal total = unitPrice * qty;
-
-            ActionRecordBase rec = new SellAction(name, qty, unitPrice, total, _clock.UtcNow);
-            _log.Add(rec);
-
-            return new OpResult(true, ErrorCode.None, tr.Message, rec);
+            return result;
         }
 
-        public string BuildPortfolioReport()
+        public async Task<OpResult> SellAsync(string name, int qty)
         {
-            var sb = new StringBuilder();
+            OpResult result = await _tradeService.SellAsync(name, qty);
+
+            return result;
+        }
+
+        public async Task<string> BuildPortfolioReportAsync()
+        {
+            StringBuilder sb = new StringBuilder();
             sb.AppendLine("Your Portfolio:");
 
-            foreach (var kvp in _portfolio.GetHoldings())
-            {
-                string name = kvp.Key;
-                int qty = kvp.Value;
+            List<HoldingSnapshot> holdings = await _ledgerStore.GetHoldingsAsync();
 
-                if (_priceBook.TryGetPrice(name, out decimal price))
+            foreach (HoldingSnapshot holding in holdings)
+            {
+                decimal? maybePrice = await _ledgerStore.GetPriceAsync(holding.Name);
+
+                if (maybePrice is not null)
                 {
-                    decimal value = price * qty;
-                    sb.AppendLine($"{name}: {qty} shares, Value: {Formatter.Money(value)}");
+                    decimal value = maybePrice.Value * holding.Quantity;
+                    sb.AppendLine($"{holding.Name}: {holding.Quantity} shares, Value: {Formatter.Money(value)}");
                 }
                 else
                 {
-                    sb.AppendLine($"{name}: {qty} shares, Value: {Formatter.Money(0m)}");
+                    sb.AppendLine($"{holding.Name}: {holding.Quantity} shares, Value: {Formatter.Money(0m)}");
                 }
             }
 
-            sb.AppendLine($"Balance: {Formatter.Money(_account.Balance)}");
+            decimal balance = await _ledgerStore.GetBalanceAsync();
+            sb.AppendLine($"Balance: {Formatter.Money(balance)}");
+
             return sb.ToString();
         }
 
-        public string BuildRecentActionsReport(int n)
+        public async Task<string> BuildRecentActionsReportAsync(int n)
         {
-            if (_log.Count == 0 || n < 1)
+            if (n < 1)
                 return "No actions yet";
 
-            if (n > _log.Count)
-                n = _log.Count;
+            List<ActionRecordBase> actions = await _ledgerStore.GetRecentActionsAsync(n);
 
-            var sb = new StringBuilder();
-            sb.AppendLine($"Your last {n} actions:");
-            int start = _log.Count - n;
+            if (actions.Count == 0)
+                return "No actions yet";
 
-            for (int i = start; i < _log.Count; i++)
-                sb.AppendLine(_log[i].Describe());
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"Your last {actions.Count} actions:");
+
+            foreach (ActionRecordBase action in actions)
+            {
+                sb.AppendLine(action.Describe());
+            }
 
             return sb.ToString();
         }
 
-        public string BuildActionsByTypeReport(ActionType type, int n)
+        public async Task<string> BuildActionsByTypeReportAsync(ActionType type, int n)
         {
             if (n < 1)
                 return "Please enter a number greater than 0.";
 
-            List<ActionRecordBase> items = _log
-                .Where(a => a.Type == type)
-                .OrderByDescending(a => a.At)
-                .Take(n)
-                .ToList();
+            List<ActionRecordBase> actions = await _ledgerStore.GetActionsByTypeAsync(type, n);
 
-            if (items.Count == 0)
+            if (actions.Count == 0)
                 return $"No actions of type {type} found.";
 
-            var sb = new StringBuilder();
-            sb.AppendLine($"Last {items.Count} actions of type {type}:");
-            foreach (var item in items)
-                sb.AppendLine(item.Describe());
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"Last {actions.Count} actions of type {type}:");
+
+            foreach (ActionRecordBase action in actions)
+            {
+                sb.AppendLine(action.Describe());
+            }
 
             return sb.ToString();
         }
 
-        public string BuildTotalsReport()
+        public async Task<string> BuildTotalsReportAsync()
         {
-            decimal totalDeposited = _log.OfType<DepositAction>().Sum(a => a.Amount);
-            decimal totalSpentOnBuys = _log.OfType<BuyAction>().Sum(a => a.Total);
-            decimal totalEarnedFromSells = _log.OfType<SellAction>().Sum(a => a.Total);
-            decimal cashflow = totalDeposited - totalSpentOnBuys + totalEarnedFromSells;
+            List<ActionRecordBase> actions = await _ledgerStore.GetAllActionsAsync();
 
-            if (_log.Count == 0)
+            if (actions.Count == 0)
                 return "Nothing to report.";
+
+            decimal totalDeposited = actions.OfType<DepositAction>().Sum(a => a.Amount);
+            decimal totalSpentOnBuys = actions.OfType<BuyAction>().Sum(a => a.Total);
+            decimal totalEarnedFromSells = actions.OfType<SellAction>().Sum(a => a.Total);
+            decimal cashflow = totalDeposited - totalSpentOnBuys + totalEarnedFromSells;
 
             return $"\nTotals Report:" +
                    $"\nDeposited: {Formatter.Money(totalDeposited)}" +
@@ -194,225 +160,5 @@ namespace VoidLedger.Core
                    $"\nNet cashflow: {Formatter.Money(cashflow)}.";
         }
 
-        public string RunSmokeTests()
-        {
-            var sb = new StringBuilder();
-            int pass = 0, fail = 0;
-
-            void Check(string testName, bool condition, string failDetails)
-            {
-                if (condition)
-                {
-                    pass++;
-                    sb.AppendLine($"PASS - {testName}");
-                }
-                else
-                {
-                    fail++;
-                    sb.AppendLine($"FAIL - {testName} | {failDetails}");
-                }
-            }
-
-            (Account acct, Dictionary<string, decimal> prices, Dictionary<string, int> holdings, List<ActionRecordBase> log, LedgerService ledger) NewSystem()
-            {
-                Account acct = new(0m);
-                Dictionary<string, decimal> prices = new();
-                Dictionary<string, int> holdings = new();
-                List<ActionRecordBase> log = new();
-                Portfolio portfolio = new(holdings);
-                PriceBook priceBook = new(prices);
-                TradeService trade = new(acct, priceBook, portfolio);
-                IClock clock = new FixedClock(new DateTime(2026, 2, 26, 0, 0, 0, DateTimeKind.Utc));
-
-                // Use fake store so smoke tests don't require EF/SQL.
-                IAccountStore store = new FakeAccountStore();
-
-                LedgerService ledger = new(acct, priceBook, portfolio, trade, log, clock, store);
-                return (acct, prices, holdings, log, ledger);
-            }
-
-            {
-                var sys = NewSystem();
-                sys.ledger.Deposit(100m);
-                decimal balBefore = sys.acct.Balance;
-                int logBefore = sys.log.Count;
-
-                var r = sys.ledger.Buy("ABC", 1);
-
-                Check(
-                    "Buy without price",
-                    r.Ok == false
-                    && r.Code == ErrorCode.MissingPrice
-                    && r.Record == null
-                    && sys.acct.Balance == balBefore
-                    && !sys.holdings.ContainsKey("ABC")
-                    && sys.log.Count == logBefore,
-                    $"ok={r.Ok}, code={r.Code}, bal={sys.acct.Balance}, holdingsHasABC={sys.holdings.ContainsKey("ABC")}" +
-                    $", logΔ={sys.log.Count - logBefore}, msg='{r.Message}'"
-                );
-            }
-
-            {
-                var sys = NewSystem();
-                sys.ledger.SetPrice("ABC", 10m);
-                decimal balBefore = sys.acct.Balance;
-                int logBefore = sys.log.Count;
-
-                var r = sys.ledger.Sell("ABC", 1);
-
-                Check(
-                    "Sell without holdings",
-                    r.Ok == false
-                    && r.Code == ErrorCode.MissingHolding
-                    && r.Record == null
-                    && sys.acct.Balance == balBefore
-                    && !sys.holdings.ContainsKey("ABC")
-                    && sys.log.Count == logBefore,
-                    $"ok={r.Ok}, code={r.Code}, bal={sys.acct.Balance}, holdingsHasABC={sys.holdings.ContainsKey("ABC")}" +
-                    $", logΔ={sys.log.Count - logBefore}, msg='{r.Message}'"
-                );
-            }
-
-            {
-                var sys = NewSystem();
-                sys.ledger.SetPrice("ABC", 10m);
-                sys.ledger.Deposit(100m);
-
-                var buy = sys.ledger.Buy("ABC", 2);
-                decimal balBefore = sys.acct.Balance;
-                int logBefore = sys.log.Count;
-
-                int qtyBefore = sys.holdings.TryGetValue("ABC", out int q0) ? q0 : 0;
-
-                var r = sys.ledger.Sell("ABC", 3);
-
-                bool hasAfter = sys.holdings.TryGetValue("ABC", out int qtyAfter);
-
-                Check(
-                    "Oversell",
-                    buy.Ok == true
-                    && buy.Code == ErrorCode.None
-                    && buy.Record != null
-                    && r.Ok == false
-                    && r.Code == ErrorCode.Oversell
-                    && r.Record == null
-                    && sys.acct.Balance == balBefore
-                    && hasAfter && qtyAfter == qtyBefore
-                    && sys.log.Count == logBefore,
-                    $"buyOk={buy.Ok}, buyCode={buy.Code}, sellOk={r.Ok}, sellCode={r.Code}, bal={sys.acct.Balance}" +
-                    $", qtyBefore={qtyBefore}, qtyAfter={qtyAfter}, logΔ={sys.log.Count - logBefore}, msg='{r.Message}'"
-                );
-            }
-
-            {
-                var sys = NewSystem();
-                sys.ledger.SetPrice("ABC", 10m);
-                sys.ledger.Deposit(5m);
-
-                decimal balBefore = sys.acct.Balance;
-                int logBefore = sys.log.Count;
-
-                var r = sys.ledger.Buy("ABC", 1);
-
-                Check(
-                    "Insufficient funds buy",
-                    r.Ok == false
-                    && r.Code == ErrorCode.InsufficientFunds
-                    && r.Record == null
-                    && sys.acct.Balance == balBefore
-                    && !sys.holdings.ContainsKey("ABC")
-                    && sys.log.Count == logBefore,
-                    $"ok={r.Ok}, code={r.Code}, bal={sys.acct.Balance}, holdingsHasABC={sys.holdings.ContainsKey("ABC")}" +
-                    $", logΔ={sys.log.Count - logBefore}, msg='{r.Message}'"
-                );
-            }
-
-            {
-                var sys = NewSystem();
-                sys.ledger.SetPrice("ABC", 10m);
-                sys.ledger.Deposit(100m);
-
-                var buy = sys.ledger.Buy("ABC", 1);
-                var sell = sys.ledger.Sell("ABC", 1);
-
-                bool holdingRemoved = !sys.holdings.ContainsKey("ABC");
-                bool balanceRestored = sys.acct.Balance == 100m;
-
-                Check(
-                    "Sell-to-zero removes holding",
-                    buy.Ok == true && buy.Code == ErrorCode.None && buy.Record != null
-                    && sell.Ok == true && sell.Code == ErrorCode.None && sell.Record != null
-                    && holdingRemoved && balanceRestored,
-                    $"buyOk={buy.Ok}, buyCode={buy.Code}, sellOk={sell.Ok}, sellCode={sell.Code}, holdingRemoved={holdingRemoved}" +
-                    $", bal={sys.acct.Balance}, msg='{sell.Message}'"
-                );
-            }
-
-            {
-                var sys = NewSystem();
-                sys.ledger.SetPrice("ABC", 10m);
-                sys.ledger.SetPrice("ABC", 20m);
-                sys.ledger.Deposit(100m);
-
-                var r = sys.ledger.Buy("ABC", 1);
-
-                bool usedNewPrice = sys.acct.Balance == 80m;
-
-                Check(
-                    "Set price overwrite works",
-                    r.Ok == true
-                    && r.Code == ErrorCode.None
-                    && r.Record != null
-                    && usedNewPrice,
-                    $"ok={r.Ok}, code={r.Code}, bal={sys.acct.Balance}, msg='{r.Message}'"
-                );
-            }
-
-            {
-                var sys = NewSystem();
-                int log0 = sys.log.Count;
-
-                var failBuy = sys.ledger.Buy("ABC", 1);
-                int logAfterFail = sys.log.Count;
-
-                var okDep = sys.ledger.Deposit(10m);
-                int logAfterOk = sys.log.Count;
-
-                Check(
-                    "Log increments only on success",
-                    failBuy.Ok == false
-                    && failBuy.Code == ErrorCode.MissingPrice
-                    && failBuy.Record == null
-                    && logAfterFail == log0
-                    && okDep.Ok == true
-                    && okDep.Code == ErrorCode.None
-                    && okDep.Record != null
-                    && logAfterOk == log0 + 1,
-                    $"failOk={failBuy.Ok}, failCode={failBuy.Code}, log0={log0}, logAfterFail={logAfterFail}" +
-                    $", okDepOk={okDep.Ok}, okDepCode={okDep.Code}, logAfterOk={logAfterOk}"
-                );
-            }
-
-            sb.AppendLine();
-            sb.AppendLine($"Smoke tests complete: {pass} PASS, {fail} FAIL");
-            return sb.ToString();
-        }
-
-        // Nested type is allowed inside a class (NOT inside a method).
-        private sealed class FakeAccountStore : IAccountStore
-        {
-            private decimal _balance;
-
-            public Task<decimal> GetBalanceAsync()
-            {
-                return Task.FromResult(_balance);
-            }
-
-            public Task SetBalanceAsync(decimal newBalance)
-            {
-                _balance = newBalance;
-                return Task.CompletedTask;
-            }
-        }
     }
 }

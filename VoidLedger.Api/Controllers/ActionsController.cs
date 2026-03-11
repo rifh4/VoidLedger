@@ -30,7 +30,8 @@ namespace VoidLedger.Api.Controllers
                 return new ObjectResult(pd) { StatusCode = 400 };
             }
 
-            return Ok(new { report = _ledger.BuildRecentActionsReport(take) });
+            string report = await _ledger.BuildRecentActionsReportAsync(take);
+            return Ok(new { report });
         }
     }
 }

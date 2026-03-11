@@ -13,7 +13,10 @@ namespace VoidLedger.Api.Controllers
 
         [HttpGet("totals")]
         public async Task<IActionResult> Totals()
-            => Ok(new { report = _ledger.BuildTotalsReport() });
+        {
+            string report = await _ledger.BuildTotalsReportAsync();
+            return Ok(new { report });
+        }
 
         [HttpGet("actions/by-type")]
         public async Task<IActionResult> ActionsByType(string type, int take = 10)
@@ -37,7 +40,8 @@ namespace VoidLedger.Api.Controllers
                 return new ObjectResult(pd) { StatusCode = 400 };
             }
 
-            return Ok(new { report = _ledger.BuildActionsByTypeReport(actionType, take) });
+            string report = await _ledger.BuildActionsByTypeReportAsync(actionType, take);
+            return Ok(new { report });
         }
     }
 }

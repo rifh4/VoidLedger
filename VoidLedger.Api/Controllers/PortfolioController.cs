@@ -15,9 +15,10 @@ namespace VoidLedger.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetPortfolio()
+        public async Task<ActionResult<string>> GetPortfolio()
         {
-            return Ok(new { report = _ledger.BuildPortfolioReport() });
+            string report = await _ledger.BuildPortfolioReportAsync();
+            return Ok(report);
         }
     }
 }
