@@ -1,137 +1,386 @@
-# VoidLedger
+# Void Ledger
 
-VoidLedger is a backend-first ASP.NET Core project for a fictional commodity trading system.  
-It currently includes a Web API, a separated Core library, automated tests, CI, and local Docker support.
+Void Ledger is a backend-first sci-fi trading API built with ASP.NET Core and Azure SQL.
 
-## Current status
+It is a portfolio project focused on demonstrating:
 
-The project currently has:
-- `VoidLedger.Api` — ASP.NET Core Web API
-- `VoidLedger.Core` — domain/application logic
-- `VoidLedger.Core.Tests` — xUnit test project
+- clean API design
+- layered backend architecture
+- EF Core persistence
+- Azure deployment
+- Docker support
+- automated tests
+- structured JSON endpoints for trading and reporting
 
-Implemented so far:
-- Thin controllers + service-layer business logic
-- Structured domain results with `OpResult` + `ErrorCode`
-- Centralized exception handling for unexpected failures
-- Automated unit tests for critical paths
-- GitHub Actions CI running `dotnet test`
-- Docker support for local containerized runs
+## Live Demo
 
-## Main features
+Swagger UI:  
+https://voidledger-api-rifh.azurewebsites.net/swagger/index.html
 
-Current API supports:
-- Set commodity prices
-- Deposit funds
-- Buy commodities
-- Sell commodities
-- View portfolio report
-- View recent actions
-- View totals report
-- View actions by type
+This is a **public shared demo instance**.
 
-## Architecture summary
+That means:
 
-The project is currently organized as:
-- **VoidLedger.Api**
-  - Controllers
-  - Request DTOs / HTTP contracts
-  - `OpResult` to HTTP / ProblemDetails mapping
-  - ASP.NET Core startup and middleware
-- **VoidLedger.Core**
-  - Enums (`ActionType`, `ErrorCode`)
-  - Results (`OpResult`, `TradeResult`)
-  - Services (`LedgerService`, `TradeService`)
-  - Action record hierarchy
-  - In-memory state and helper services
-  - Time abstraction (`IClock`, `SystemClock`, `FixedClock`)
-- **VoidLedger.Core.Tests**
-  - xUnit tests
-  - Deterministic test factory using `FixedClock`
+- data is shared between visitors
+- state may change between sessions
+- using a unique commodity name is recommended when testing the API
 
-## Local development
+A good demo name is something like `DEMO_ORE_123`.
 
-### Run with `dotnet`
+---
 
-From the repository root:
+## Screenshots
 
-1. Restore dependencies
-2. Build the solution
-3. Run the API project
+> Add screenshots here after validation.
+>
+> Recommended screenshots:
+> 1. Swagger UI with endpoint groups visible
+> 2. `GET /prices/{name}` showing price movement metadata
+> 3. `GET /portfolio/valuation` showing structured valuation JSON
 
-Typical flow:
-- `dotnet restore`
-- `dotnet build`
-- run the API project from `VoidLedger.Api`
+### Swagger UI
 
-## Running tests
+<!-- INSERT SCREENSHOT: Swagger UI -->
 
-From the repository root:
-- `dotnet test`
+### Price Movement Example
 
-Current test suite covers the critical business paths, including:
+<!-- INSERT SCREENSHOT: GET /prices/{name} response -->
+
+### Portfolio Valuation Example
+
+<!-- INSERT SCREENSHOT: GET /portfolio/valuation response -->
+
+---
+
+## What the API Does
+
+Void Ledger models a simple trading account that can:
+
+- set commodity prices
+- deposit cash
+- buy commodities
+- sell commodities
+- inspect holdings
+- inspect structured portfolio valuation
+- inspect recent actions and totals
+- inspect price movement metadata
+
+### Current Flavor Features
+
+To make the market feel less static, prices include movement metadata:
+
+- current price
+- previous price
+- updated-at UTC timestamp
+- derived change amount
+- derived direction (`Up`, `Down`, `Flat`, `Unknown`)
+
+---
+
+## Example Demo Flow
+
+A reviewer can try the project with this flow:
+
+1. `POST /prices` with a new commodity name
+2. `POST /prices` again with a different price
+3. `GET /prices/{name}` to see `previousPrice`, `changeAmount`, and `direction`
+4. `POST /deposit`
+5. `POST /trade/buy`
+6. `POST /trade/sell`
+7. `GET /portfolio/valuation`
+8. `GET /actions/recent?take=10`
+9. `GET /reports/totals`
+
+---
+
+## Main Endpoints
+
+### Prices
+- `POST /prices`
+- `GET /prices`
+- `GET /prices/{name}`
+
+### Trading
+- `POST /deposit`
+- `POST /trade/buy`
+- `POST /trade/sell`
+
+### Portfolio
+- `GET /portfolio`  
+  Human-readable legacy text report
+- `GET /portfolio/valuation`  
+  Structured JSON valuation endpoint
+
+### Actions / Reports
+- `GET /actions/recent?take=10`
+- `GET /reports/totals`
+- `GET /reports/actions/by-type?type=Buy&take=10`
+
+---
+
+## Example Response Shapes
+
+### `GET /prices/{name}`
+
+```json
+{
+  "name": "DEMO_ORE",
+  "price": 8,
+  "previousPrice": 5,
+  "updatedAtUtc": "2026-03-12T19:20:48.6114274",
+  "changeAmount": 3,
+  "direction": "Up"
+}
+```
+
+### `GET /portfolio/valuation`
+
+```json
+{
+  "positions": [
+    {
+      "name": "DEMO_ORE",
+      "quantity": 3,
+      "currentPrice": 8,
+      "positionValue": 24
+    }
+  ],
+  "cashBalance": 276,
+  "totalPortfolioValue": 24,
+  "totalAccountValue": 300
+}
+```
+
+### `GET /reports/totals`
+
+```json
+{
+  "actionCount": 5,
+  "totalDeposited": 300,
+  "totalSpentOnBuys": 32,
+  "totalEarnedFromSells": 8,
+  "netCashflow": 276
+}
+```
+
+---
+
+## Tech Stack
+
+- **C# / .NET 8**
+- **ASP.NET Core Web API**
+- **Entity Framework Core**
+- **Azure SQL**
+- **Azure App Service**
+- **xUnit**
+- **GitHub Actions**
+- **Docker**
+
+---
+
+## Architecture
+
+The solution is split into three projects:
+
+### `VoidLedger.Api`
+HTTP/API boundary.
+
+Responsibilities:
+- controllers
+- request/response DTOs
+- EF Core DbContext, entities, migrations
+- HTTP result mapping
+- DI wiring
+- deployment/runtime configuration
+
+### `VoidLedger.Core`
+Core application logic.
+
+Responsibilities:
+- service layer
+- result contracts
+- business rules
+- store abstractions
+- trading orchestration
+- read models
+
+### `VoidLedger.Core.Tests`
+Automated tests.
+
+Responsibilities:
+- service-layer unit tests
+- fake store/test support
+- critical path regression coverage
+
+---
+
+## Design Decisions
+
+### SQL Is the Source of Truth
+The runtime no longer depends on in-memory state.  
+Accounts, prices, holdings, and action logs are persisted in Azure SQL.
+
+### Thin Controllers
+Controllers stay small and delegate behavior to services.
+
+### Stable Result Contract
+Expected business failures are returned through `OpResult + ErrorCode` and mapped to HTTP responses consistently.
+
+### Centralized Exception Handling
+Unexpected exceptions are handled globally and returned as clean `500 ProblemDetails`.
+
+### Additive API Evolution
+Older text/report-style endpoints were kept where useful, while newer structured JSON endpoints were added for cleaner machine-readable contracts.
+
+---
+
+## Running Locally
+
+### 1. Restore and build
+
+```bash
+dotnet restore
+dotnet build
+```
+
+### 2. Run the API
+
+```bash
+dotnet run --project VoidLedger.Api
+```
+
+### 3. Open Swagger
+
+Open the local Swagger URL shown by ASP.NET Core at startup.
+
+---
+
+## Local Configuration
+
+The project uses a connection string named:
+
+`ConnectionStrings:VoidLedgerDb`
+
+For local development, store secrets outside the repo (for example, User Secrets).
+
+The live Azure deployment uses Azure App Service configuration for environment-specific settings.
+
+---
+
+## Running Tests
+
+```bash
+dotnet test
+```
+
+The test suite covers critical backend behavior such as:
+
 - valid/invalid price setting
-- valid/invalid deposit
-- buy/sell success and failure cases
+- valid/invalid deposits
+- buy/sell success and failure paths
+- missing price / missing holding / oversell
 - invalid name handling
-- totals report correctness
+- portfolio valuation behavior
+- structured JSON/reporting behavior
 
-## Run with Docker
+---
 
-The repository includes Docker support using:
-- a **repo-root Dockerfile**
-- a `.dockerignore`
+## Running with Docker
 
-### Build the image
+Build the image:
 
-From the repository root:
-- `docker build -t voidledger-api:dev .`
+```bash
+docker build -t voidledger-api:dev .
+```
 
-### Run the container
+Run the container:
 
-From the repository root:
-- `docker run --rm --name voidledger-api-dev -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Development voidledger-api:dev`
+```bash
+docker run --rm --name voidledger-api-dev -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Development voidledger-api:dev
+```
 
-### Access Swagger
+Then open Swagger through the containerized app.
 
-After the container starts, open:
-- `http://localhost:8080/swagger`
+---
 
-## Error handling
+## Deployment
 
-The API uses two layers of error handling:
-- **Expected business failures** use `OpResult + ErrorCode` and are mapped to HTTP responses.
-- **Unexpected exceptions** are handled globally and returned as clean HTTP 500 ProblemDetails responses.
+The API is deployed to **Azure App Service** and uses **Azure SQL** for persistence.
 
-## CI
+Live Swagger UI:  
+https://voidledger-api-rifh.azurewebsites.net/swagger/index.html
 
-GitHub Actions is configured to run `dotnet test` on the configured branches / PR flow.
+Deployment-related work completed in this project includes:
 
-## EF Core groundwork
+- Dockerizing the API
+- publishing to Azure App Service
+- configuring Azure App Settings / connection strings
+- applying EF Core migrations to Azure SQL
+- verifying persisted behavior survives restart/redeploy
 
-The project already includes EF Core groundwork:
-- `Accounts`
-- `Prices`
-- `Holdings`
-- migrations applied successfully
+---
 
-However, runtime persistence is **not yet wired into the API flow**.
+## Current Scope / Limitations
 
-## Current limitation
+This project is intentionally scoped as a backend portfolio project.
 
-At the moment, **runtime behavior is still in-memory**.  
-That means API state does **not** yet use the SQL database as the source of truth during normal execution.
+### Included
+- single-account trading flow
+- persisted prices, holdings, actions, and balance
+- structured reporting endpoints
+- price movement metadata
+- live Azure deployment
 
-Azure SQL integration and persisted runtime behavior are intentionally deferred to a later phase.
+### Deferred / intentionally not included
+- authentication / authorization
+- multi-user account isolation
+- frontend client
+- background market simulation
+- stations, factions, travel time, shipments
+- production-grade security / rate limiting
 
-## Planned next steps
+---
 
-Short-term next steps:
-- polish README and usage docs
-- continue deployment readiness work
-- prepare Azure deployment
-- later wire real persistence against Azure SQL
+## Notes for Reviewers
 
-## Notes
+- The live app is a **shared public demo**.
+- Data can change between sessions.
+- Use a unique commodity name when testing.
+- `/portfolio` is intentionally kept as a human-readable legacy endpoint.
+- `/portfolio/valuation` is the structured JSON portfolio endpoint.
 
-This README is a temporary project-state document and will likely be updated as deployment and persistence phases are completed.
+---
+
+## Why This Project Exists
+
+Void Ledger was built as a deliberate backend learning project focused on becoming job-ready in:
+
+- C#
+- ASP.NET Core
+- EF Core
+- SQL-backed API design
+- testing
+- deployment
+- backend architecture
+
+The goal was not just to make something work, but to take it through:
+
+- initial console/domain modeling
+- API extraction
+- test hardening
+- Dockerization
+- Azure deployment
+- SQL-backed persistence
+- endpoint polish
+
+---
+
+## Project Status
+
+Feature-complete for the current intended scope.
+
+Next work, if extended in the future, would likely be one of:
+- authentication / account isolation
+- richer trading mechanics
+- a frontend client
+- more advanced reporting / analytics
