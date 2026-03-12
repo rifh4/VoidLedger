@@ -31,12 +31,14 @@ A good demo name is something like `DEMO_ORE_123`.
 
 ## Screenshots
 
-> Add screenshots here after validation.
->
-> Recommended screenshots:
-> 1. Swagger UI with endpoint groups visible
-> 2. `GET /prices/{name}` showing price movement metadata
-> 3. `GET /portfolio/valuation` showing structured valuation JSON
+### Swagger UI overview
+![Swagger UI overview](docs/images/swagger-overview.png)
+
+### Price movement example
+![GET /prices/{name} showing previous price, change amount, and direction](docs/images/price-movement.png)
+
+### Portfolio valuation
+![GET /portfolio/valuation structured JSON response](docs/images/portfolio-valuation.png)
 
 ### Swagger UI
 
