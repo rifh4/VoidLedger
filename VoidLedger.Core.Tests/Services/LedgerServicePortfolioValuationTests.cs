@@ -16,7 +16,7 @@ namespace VoidLedger.Core.Tests.Services
             await system.Store.SetHoldingQuantityAsync("AAA", 2);
             await system.Store.SetHoldingQuantityAsync("NOPRICE", 1);
 
-            await system.Store.SetPriceAsync("AAA", 10m);
+            await system.Store.SetPriceAsync("AAA", 10m, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
             // Note: no price for NOPRICE
 
             // Act

@@ -1,4 +1,5 @@
 ﻿using VoidLedger.Core.Services;
+using VoidLedger.Core.Stores;
 
 namespace VoidLedger.Core;
 
@@ -53,7 +54,8 @@ public sealed class TradeService: ITradeService
     {
         string cleanName = (name ?? "").Trim().ToUpperInvariant();
 
-        decimal? maybeUnitPrice = await _ledgerStore.GetPriceAsync(cleanName);
+        PriceSnapshot? maybePriceSnapshot = await _ledgerStore.GetPriceAsync(cleanName);
+        decimal? maybeUnitPrice = maybePriceSnapshot?.Price;
         decimal currentBalance = await _ledgerStore.GetBalanceAsync();
         int currentHoldingQuantity = await _ledgerStore.GetHoldingQuantityAsync(cleanName) ?? 0;
 
@@ -131,7 +133,8 @@ public sealed class TradeService: ITradeService
     {
         string cleanName = (name ?? "").Trim().ToUpperInvariant();
 
-        decimal? maybeUnitPrice = await _ledgerStore.GetPriceAsync(cleanName);
+        PriceSnapshot? maybePriceSnapshot = await _ledgerStore.GetPriceAsync(cleanName);
+        decimal? maybeUnitPrice = maybePriceSnapshot?.Price; ;
         decimal currentBalance = await _ledgerStore.GetBalanceAsync();
         int? currentHoldingQuantity = await _ledgerStore.GetHoldingQuantityAsync(cleanName);
 

@@ -7,8 +7,8 @@ public interface ILedgerStore
     Task<decimal> GetBalanceAsync();
     Task SetBalanceAsync(decimal newBalance);
 
-    Task<decimal?> GetPriceAsync(string name);
-    Task SetPriceAsync(string name, decimal price);
+    Task<PriceSnapshot?> GetPriceAsync(string name);
+    Task SetPriceAsync(string name, decimal price, DateTime updatedAtUtc);
 
     Task<int?> GetHoldingQuantityAsync(string name);
     Task SetHoldingQuantityAsync(string name, int quantity);

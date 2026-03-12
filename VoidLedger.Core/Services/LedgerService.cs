@@ -48,9 +48,10 @@ namespace VoidLedger.Core
             if (price <= 0)
                 return new OpResult(false, ErrorCode.InvalidAmount, "Price must be above 0.", null);
 
-            ActionRecordBase rec = new SetPriceAction(cleanName, price, _clock.UtcNow);
+            DateTime utcNow = _clock.UtcNow;
+            ActionRecordBase rec = new SetPriceAction(cleanName, price, utcNow);
 
-            await _ledgerStore.SetPriceAsync(cleanName, price);
+            await _ledgerStore.SetPriceAsync(cleanName, price, utcNow);
             await _ledgerStore.AddActionAsync(rec);
             await _ledgerStore.SaveChangesAsync();
 
@@ -71,12 +72,7 @@ namespace VoidLedger.Core
                 return null;
             }
 
-            decimal? maybePrice = await _ledgerStore.GetPriceAsync(cleanName);
-            if (maybePrice.HasValue)
-            {
-                return new PriceSnapshot(cleanName, maybePrice.Value);
-            }
-            return null;
+            return await _ledgerStore.GetPriceAsync(cleanName);
         }
 
         public async Task<OpResult> BuyAsync(string name, int qty)
@@ -102,11 +98,11 @@ namespace VoidLedger.Core
 
             foreach (HoldingSnapshot holding in holdings)
             {
-                decimal? maybePrice = await _ledgerStore.GetPriceAsync(holding.Name);
+                PriceSnapshot? maybePrice = await _ledgerStore.GetPriceAsync(holding.Name);
 
                 if (maybePrice is not null)
                 {
-                    decimal value = maybePrice.Value * holding.Quantity;
+                    decimal value = maybePrice.Price * holding.Quantity;
                     sb.AppendLine($"{holding.Name}: {holding.Quantity} shares, Value: {Formatter.Money(value)}");
                 }
                 else

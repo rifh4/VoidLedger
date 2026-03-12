@@ -5,7 +5,7 @@ namespace VoidLedger.Core.Tests.Support
     internal sealed class FakeLedgerStore : ILedgerStore
     {
         private decimal _balance;
-        private readonly Dictionary<string, decimal> _prices = new();
+        private readonly Dictionary<string, PriceSnapshot> _prices = new();
         private readonly Dictionary<string, int> _holdings = new();
         private readonly List<ActionRecordBase> _actions = new();
         internal decimal BalanceSnapshot => _balance;
@@ -27,25 +27,40 @@ namespace VoidLedger.Core.Tests.Support
             return Task.CompletedTask;
         }
 
-        public Task<decimal?> GetPriceAsync(string name)
+        public Task<PriceSnapshot?> GetPriceAsync(string name)
         {
-            bool found = _prices.TryGetValue(name, out decimal price);
-            return Task.FromResult(found ? (decimal?)price : null);
+            bool found = _prices.TryGetValue(name, out PriceSnapshot? snapshot);
+            return Task.FromResult(found ? snapshot : null);
         }
 
         public Task<List<PriceSnapshot>> GetPricesAsync()
         {
-            List<PriceSnapshot> prices = _prices
-                .OrderBy(kvp => kvp.Key)
-                .Select(kvp => new PriceSnapshot(kvp.Key, kvp.Value))
+            List<PriceSnapshot> prices = _prices.Values
+                .OrderBy(p => p.Name)
                 .ToList();
 
             return Task.FromResult(prices);
         }
 
-        public Task SetPriceAsync(string name, decimal price)
+        public Task SetPriceAsync(string name, decimal price, DateTime updatedAtUtc)
         {
-            _prices[name] = price;
+            if (_prices.TryGetValue(name, out PriceSnapshot? existing))
+            {
+                _prices[name] = new PriceSnapshot(
+                    name,
+                    price,
+                    existing.Price,
+                    updatedAtUtc);
+            }
+            else
+            {
+                _prices[name] = new PriceSnapshot(
+                    name,
+                    price,
+                    null,
+                    updatedAtUtc);
+            }
+
             return Task.CompletedTask;
         }
 
@@ -118,7 +133,7 @@ namespace VoidLedger.Core.Tests.Support
 
         internal decimal GetPriceSnapshot(string name)
         {
-            return _prices.TryGetValue(name, out decimal price) ? price : 0m;
+            return _prices.TryGetValue(name, out PriceSnapshot? snapshot) ? snapshot.Price : 0m;
         }
     }
 }
