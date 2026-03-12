@@ -32,5 +32,27 @@ namespace VoidLedger.Api.Controllers
             return Ok(response);
         }
 
+        [HttpGet("{name}")]
+        public async Task<ActionResult<PriceResponse>> GetPrice(string name)
+        {
+            PriceSnapshot? snapshot = await _ledger.GetPriceAsync(name);
+            if (snapshot is null)
+            {
+                ProblemDetails pd = new ProblemDetails
+                {
+                    Title = "MissingPrice",
+                    Detail = "Price not set",
+                    Status = 404
+                };
+
+                pd.Extensions["code"] = "MissingPrice";
+                return new ObjectResult(pd) { StatusCode = 404 };
+            }
+                       
+
+            PriceResponse response = new PriceResponse(snapshot.Name, snapshot.Price);
+            return Ok(response);
+        }
+
     }
 }

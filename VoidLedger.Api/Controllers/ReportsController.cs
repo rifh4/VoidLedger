@@ -35,7 +35,7 @@ namespace VoidLedger.Api.Controllers
         {
             if (take <= 0)
             {
-                var pd = new ProblemDetails
+                ProblemDetails pd = new ProblemDetails
                 {
                     Title = "InvalidTake",
                     Detail = "The 'take' query parameter must be a positive integer.",
@@ -48,7 +48,7 @@ namespace VoidLedger.Api.Controllers
 
             if (!Enum.TryParse<ActionType>(type, ignoreCase: true, out ActionType actionType))
             {
-                var pd = new ProblemDetails
+                ProblemDetails pd = new ProblemDetails
                 {
                     Title = "InvalidActionType",
                     Detail = $"The 'type' query parameter must be one of: {string.Join(", ", Enum.GetNames<ActionType>())}.",

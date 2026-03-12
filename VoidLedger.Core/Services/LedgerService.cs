@@ -63,6 +63,22 @@ namespace VoidLedger.Core
             return _ledgerStore.GetPricesAsync();
         }
 
+        public async Task<PriceSnapshot?> GetPriceAsync(string name)
+        {
+            string cleanName = (name ?? "").Trim().ToUpperInvariant();
+            if (string.IsNullOrEmpty(cleanName))
+            {
+                return null;
+            }
+
+            decimal? maybePrice = await _ledgerStore.GetPriceAsync(cleanName);
+            if (maybePrice.HasValue)
+            {
+                return new PriceSnapshot(cleanName, maybePrice.Value);
+            }
+            return null;
+        }
+
         public async Task<OpResult> BuyAsync(string name, int qty)
         {
             OpResult result = await _tradeService.BuyAsync(name, qty);

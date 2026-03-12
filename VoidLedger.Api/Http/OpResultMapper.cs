@@ -49,7 +49,7 @@ static class OpResultMapper
         int status = MapStatus(result.Code);
 
 
-        var pd = new ProblemDetails
+        ProblemDetails pd = new ProblemDetails
         {
             Title = result.Code.ToString(),
             Detail = result.Message,

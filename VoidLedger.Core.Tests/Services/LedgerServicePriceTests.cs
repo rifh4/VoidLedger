@@ -52,5 +52,42 @@ namespace VoidLedger.Core.Tests.Services
             Assert.Equal(1m, prices[1].Price);
             Assert.Equal(3m, prices[2].Price);
         }
+
+        [Fact]
+        public async Task GetPrice_WhenFound_ShouldReturnSnapshot()
+        {
+            TestSystem system = TestSystemFactory.Create();
+
+            await system.LedgerService.SetPriceAsync("abc", 1m);
+            PriceSnapshot? priceSnapshot = await system.LedgerService.GetPriceAsync("abc");
+            Assert.NotNull(priceSnapshot);
+            Assert.Equal("ABC", priceSnapshot.Name);
+            Assert.Equal(1m, priceSnapshot.Price);
+        }
+
+        [Fact]
+        public async Task GetPrice_WhenMissing_ShouldReturnNull()
+        {
+            TestSystem system = TestSystemFactory.Create();
+
+            PriceSnapshot? priceSnapshot = await system.LedgerService.GetPriceAsync("aaa");
+            
+            Assert.Null(priceSnapshot);
+        }
+
+        [Fact]
+        public async Task GetPrice_WhenInputNeedsNormalization_ShouldReturnNormalizedSnapshot()
+        {
+            TestSystem system = TestSystemFactory.Create();
+
+            await system.LedgerService.SetPriceAsync("AAA", 1m);
+
+            PriceSnapshot? priceSnapshot = await system.LedgerService.GetPriceAsync(" aaa ");
+
+            Assert.NotNull(priceSnapshot);
+            Assert.Equal("AAA", priceSnapshot.Name);
+            Assert.Equal(1m, priceSnapshot.Price);
+
+        }
     }
 }

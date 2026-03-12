@@ -21,7 +21,7 @@ namespace VoidLedger.Api.Controllers
         {
             if (take <= 0)
             {
-                var pd = new ProblemDetails
+                ProblemDetails pd = new ProblemDetails
                 {
                     Title = "InvalidTake",
                     Detail = "The query parameter must be a positive integer.",

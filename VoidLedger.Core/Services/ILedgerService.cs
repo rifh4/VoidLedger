@@ -18,4 +18,5 @@ public interface ILedgerService
     Task<List<ActionRecordBase>> GetRecentActionsAsync(int take);
     Task<List<ActionRecordBase>> GetActionsByTypeAsync(ActionType type, int take);
     Task<TotalsSnapshot> GetTotalsAsync();
+    Task<PriceSnapshot?> GetPriceAsync(string name);
 }
