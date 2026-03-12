@@ -32,13 +32,13 @@ A good demo name is something like `DEMO_ORE_123`.
 ## Screenshots
 
 ### Swagger UI overview
-<img src="docs/images/swagger-overview.png" alt="Swagger UI overview" width="600" />
+<img src="docs/images/swagger-overview.png" alt="Swagger UI overview" width="400" />
 
 ### Price movement example
-<img src="docs/images/price-movement.png" alt="GET /prices/{name} showing previous price, change amount, and direction" width="500" />
+<img src="docs/images/price-movement.png" alt="GET /prices/{name} showing previous price, change amount, and direction" width="300" />
 
 ### Portfolio valuation
-<img src="docs/images/portfolio-valuation.png" alt="GET /portfolio/valuation structured JSON response" width="500" />
+<img src="docs/images/portfolio-valuation.png" alt="GET /portfolio/valuation structured JSON response" width="300" />
 
 ### Swagger UI
 
