@@ -59,22 +59,7 @@ namespace VoidLedger.Api.Data.Stores
             accountEntity.Balance = newBalance;
         }
 
-        public async Task<decimal?> GetPriceAsync(string name)
-        {
-            PriceEntity? priceEntity = await _dbContext.Prices
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Name == name);
-
-            if (priceEntity is null)
-            {
-                return null;
-            }
-
-
-            return priceEntity.Price;
-        }
-
-        public async Task SetPriceAsync(string name, decimal price)
+        public async Task SetPriceAsync(string name, decimal price, DateTime updatedAtUtc)
         {
             PriceEntity? priceEntity = await _dbContext.Prices
                 .FirstOrDefaultAsync(p => p.Name == name);
@@ -84,13 +69,18 @@ namespace VoidLedger.Api.Data.Stores
                 priceEntity = new PriceEntity
                 {
                     Name = name,
-                    Price = price
+                    Price = price,
+                    PreviousPrice = null,
+                    UpdatedAtUtc = updatedAtUtc
                 };
+
                 _dbContext.Prices.Add(priceEntity);
                 return;
             }
 
+            priceEntity.PreviousPrice = priceEntity.Price;
             priceEntity.Price = price;
+            priceEntity.UpdatedAtUtc = updatedAtUtc;
         }
 
         public async Task<int?> GetHoldingQuantityAsync(string name)
@@ -157,8 +147,25 @@ namespace VoidLedger.Api.Data.Stores
             return await _dbContext.Prices
                 .AsNoTracking()
                 .OrderBy(p => p.Name)
-                .Select(p => new PriceSnapshot(p.Name, p.Price))
+                .Select(p => new PriceSnapshot(
+                    p.Name,
+                    p.Price,
+                    p.PreviousPrice,
+                    p.UpdatedAtUtc))
                 .ToListAsync();
+        }
+
+        public async Task<PriceSnapshot?> GetPriceAsync(string name)
+        {
+            return await _dbContext.Prices
+                .AsNoTracking()
+                .Where(p => p.Name == name)
+                .Select(p => new PriceSnapshot(
+                    p.Name,
+                    p.Price,
+                    p.PreviousPrice,
+                    p.UpdatedAtUtc))
+                .FirstOrDefaultAsync();
         }
 
         public async Task SaveChangesAsync()

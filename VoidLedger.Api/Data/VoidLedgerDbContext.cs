@@ -20,6 +20,7 @@ namespace VoidLedger.Api.Data
             modelBuilder.Entity<PriceEntity>().Property(h => h.Price).HasPrecision(18, 2);
             modelBuilder.Entity<PriceEntity>().Property(h => h.Name).IsRequired().HasMaxLength(64);
             modelBuilder.Entity<PriceEntity>().HasIndex(h => h.Name).IsUnique();
+            modelBuilder.Entity<PriceEntity>().Property(h => h.PreviousPrice).HasPrecision(18, 2);
 
             modelBuilder.Entity<HoldingEntity>().Property(h => h.Name).IsRequired().HasMaxLength(64);
             modelBuilder.Entity<HoldingEntity>().HasIndex(h => new { h.AccountId, h.Name }).IsUnique(); 

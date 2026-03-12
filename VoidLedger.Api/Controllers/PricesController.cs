@@ -28,7 +28,7 @@ namespace VoidLedger.Api.Controllers
         public async Task<ActionResult<List<PriceResponse>>> GetPrices()
         {
             List<PriceSnapshot> prices = await _ledger.GetPricesAsync();
-            List<PriceResponse> response = prices.Select(p => new PriceResponse(p.Name, p.Price)).ToList();
+            List<PriceResponse> response = prices.Select(ToPriceResponse).ToList();
             return Ok(response);
         }
 
@@ -48,10 +48,33 @@ namespace VoidLedger.Api.Controllers
                 pd.Extensions["code"] = "MissingPrice";
                 return new ObjectResult(pd) { StatusCode = 404 };
             }
-                       
 
-            PriceResponse response = new PriceResponse(snapshot.Name, snapshot.Price);
+
+            PriceResponse response = ToPriceResponse(snapshot);
             return Ok(response);
+        }
+
+        private static PriceResponse ToPriceResponse(PriceSnapshot snapshot)
+        {
+            decimal? changeAmount = snapshot.PreviousPrice is null
+                ? null
+                : snapshot.Price - snapshot.PreviousPrice.Value;
+
+            string direction = snapshot.PreviousPrice is null
+                ? "Unknown"
+                : snapshot.Price > snapshot.PreviousPrice.Value
+                    ? "Up"
+                    : snapshot.Price < snapshot.PreviousPrice.Value
+                        ? "Down"
+                        : "Flat";
+
+            return new PriceResponse(
+                snapshot.Name,
+                snapshot.Price,
+                snapshot.PreviousPrice,
+                snapshot.UpdatedAtUtc,
+                changeAmount,
+                direction);
         }
 
     }

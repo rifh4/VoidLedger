@@ -5,5 +5,7 @@
         public int Id { get; set; }
         public decimal Price { get; set; }
         public string Name { get; set; } = "";
+        public decimal? PreviousPrice { get; set; }
+        public DateTime UpdatedAtUtc { get; set; }
     }
 }
