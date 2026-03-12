@@ -16,6 +16,8 @@ namespace VoidLedger.Api.Controllers
             _ledger = ledger;
         }
 
+        // Legacy text endpoint kept for simple human-readable consumers.
+        // API clients that need structured valuation data should use GET /portfolio/valuation.
         [HttpGet]
         public async Task<ActionResult<string>> GetPortfolio()
         {

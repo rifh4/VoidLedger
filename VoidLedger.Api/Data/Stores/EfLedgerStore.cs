@@ -14,6 +14,9 @@ namespace VoidLedger.Api.Data.Stores
             _dbContext = dbContext;
         }
 
+        // Runtime currently assumes a single default account.
+        // Reuse any already-tracked account first so one request does not accidentally
+        // create multiple in-memory account instances before persistence.
         private async Task<AccountEntity> GetOrCreateDefaultAccountAsync()
         {
             AccountEntity? localAccount = _dbContext.Accounts.Local.FirstOrDefault();
@@ -36,6 +39,8 @@ namespace VoidLedger.Api.Data.Stores
             return account;
         }
 
+        // Some child rows (for example holdings and action logs) need a real AccountId FK.
+        // Persist the default account before those writes so dependent rows can reference it safely.
         private async Task<AccountEntity> GetOrCreatePersistedDefaultAccountAsync()
         {
             AccountEntity account = await GetOrCreateDefaultAccountAsync();
@@ -78,6 +83,8 @@ namespace VoidLedger.Api.Data.Stores
                 return;
             }
 
+            // Prices table stores the latest value plus the immediately previous value for API/UI deltas.
+            // It is not intended to be a full price-history table; action history is recorded separately in ActionLogs.
             priceEntity.PreviousPrice = priceEntity.Price;
             priceEntity.Price = price;
             priceEntity.UpdatedAtUtc = updatedAtUtc;
@@ -105,6 +112,8 @@ namespace VoidLedger.Api.Data.Stores
             HoldingEntity? holdingEntity = await _dbContext.Holdings
                 .FirstOrDefaultAsync(h => h.AccountId == account.Id && h.Name == name);
 
+            // Zero quantity means "no holding" in persisted state, so the row is removed
+            // instead of keeping a zero-quantity placeholder in SQL.
             if (quantity == 0)
             {
                 if (holdingEntity is not null)
@@ -173,6 +182,8 @@ namespace VoidLedger.Api.Data.Stores
             await _dbContext.SaveChangesAsync();
         }
 
+        // Action logs are stored as an append-only audit trail.
+        // The typed domain actions are flattened here into one SQL table shape.
         public async Task AddActionAsync(ActionRecordBase action)
         {
             AccountEntity account = await GetOrCreatePersistedDefaultAccountAsync();
@@ -266,6 +277,8 @@ namespace VoidLedger.Api.Data.Stores
                 .Take(take)
                 .ToListAsync();
 
+            // Fetch newest rows first so SQL can satisfy "latest N" efficiently,
+            // then reverse in memory because callers expect chronological order.
             rows.Reverse();
 
             List<ActionRecordBase> actions = rows
@@ -286,6 +299,8 @@ namespace VoidLedger.Api.Data.Stores
                 .Take(take)
                 .ToListAsync();
 
+            // Same pattern as GetRecentActionsAsync: query latest matching rows first,
+            // then return them oldest-to-newest for easier consumption by callers.
             rows.Reverse();
 
             List<ActionRecordBase> actions = rows

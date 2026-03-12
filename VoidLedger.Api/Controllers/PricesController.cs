@@ -54,6 +54,8 @@ namespace VoidLedger.Api.Controllers
             return Ok(response);
         }
 
+        // ChangeAmount and Direction are response-only fields derived from current and previous price.
+        // When no previous price exists yet, the API returns null change and "Unknown" direction.
         private static PriceResponse ToPriceResponse(PriceSnapshot snapshot)
         {
             decimal? changeAmount = snapshot.PreviousPrice is null

@@ -89,6 +89,8 @@ namespace VoidLedger.Core
             return result;
         }
 
+        // Legacy human-readable report kept for console/text consumers.
+        // Structured/API-facing callers should prefer GetPortfolioValuationAsync().
         public async Task<string> BuildPortfolioReportAsync()
         {
             StringBuilder sb = new StringBuilder();
@@ -117,6 +119,8 @@ namespace VoidLedger.Core
             return sb.ToString();
         }
 
+        // Legacy text report for command-line style consumers.
+        // API callers that need structured data should use GetRecentActionsAsync().
         public async Task<string> BuildRecentActionsReportAsync(int n)
         {
             if (n < 1)
@@ -138,6 +142,8 @@ namespace VoidLedger.Core
             return sb.ToString();
         }
 
+        // Same legacy text-report pattern as BuildRecentActionsReportAsync().
+        // Structured callers should prefer GetActionsByTypeAsync().
         public async Task<string> BuildActionsByTypeReportAsync(ActionType type, int n)
         {
             if (n < 1)
@@ -159,6 +165,7 @@ namespace VoidLedger.Core
             return sb.ToString();
         }
 
+        // Text summary kept alongside GetTotalsAsync() for simple human-readable output.
         public async Task<string> BuildTotalsReportAsync()
         {
             List<ActionRecordBase> actions = await _ledgerStore.GetAllActionsAsync();
@@ -194,6 +201,8 @@ namespace VoidLedger.Core
                 int quantity = holding.Quantity;
                 bool hasPrice = priceByName.TryGetValue(name, out decimal price);
 
+                // Missing price stays null in the structured response so callers can distinguish
+                // "unknown valuation" from a real zero-valued position.
                 if (hasPrice)
                 {
                     decimal? currentPrice = price;

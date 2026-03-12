@@ -3,17 +3,19 @@ using VoidLedger.Core.Stores;
 
 namespace VoidLedger.Core;
 
-public sealed class TradeService: ITradeService
+public sealed class TradeService : ITradeService
 {
     private readonly ILedgerStore _ledgerStore;
     private readonly IClock _clock;
 
-    public TradeService(ILedgerStore ledgerStore,IClock clock)
+    public TradeService(ILedgerStore ledgerStore, IClock clock)
     {
         _ledgerStore = ledgerStore;
         _clock = clock;
     }
 
+    // Build and validate the full buy outcome before mutating persisted state.
+    // This keeps the write path simple and ensures BuyAsync only performs writes for a valid trade.
     private TradeResult BuildBuyResult(string name, int qty, decimal? maybeUnitPrice, decimal currentBalance,
     int currentHoldingQuantity)
     {
@@ -71,6 +73,8 @@ public sealed class TradeService: ITradeService
             return new OpResult(false, result.Code, result.Message, null);
         }
 
+        // Persist the balance/holding state change first, then append the audit record,
+        // then flush once so the successful trade and its log are saved together.
         await _ledgerStore.SetBalanceAsync(result.NewBalance!.Value);
         await _ledgerStore.SetHoldingQuantityAsync(result.Name!, result.NewHoldingQuantity!.Value);
         
@@ -87,6 +91,8 @@ public sealed class TradeService: ITradeService
         return new OpResult(true, ErrorCode.None, result.Message, rec);
     }
 
+    // Sell validation is resolved completely before writes so oversell/missing-price/missing-holding
+    // cases fail without partially mutating persisted balance or holdings.
     private TradeResult BuildSellResult(
     string name,
     int qty,
@@ -134,7 +140,7 @@ public sealed class TradeService: ITradeService
         string cleanName = (name ?? "").Trim().ToUpperInvariant();
 
         PriceSnapshot? maybePriceSnapshot = await _ledgerStore.GetPriceAsync(cleanName);
-        decimal? maybeUnitPrice = maybePriceSnapshot?.Price; ;
+        decimal? maybeUnitPrice = maybePriceSnapshot?.Price; 
         decimal currentBalance = await _ledgerStore.GetBalanceAsync();
         int? currentHoldingQuantity = await _ledgerStore.GetHoldingQuantityAsync(cleanName);
 
@@ -150,6 +156,8 @@ public sealed class TradeService: ITradeService
             return new OpResult(false, result.Code, result.Message, null);
         }
 
+        // Same write order as BuyAsync: apply state changes first, then append the audit record,
+        // then save once so the persisted trade outcome and its log stay aligned.
         await _ledgerStore.SetBalanceAsync(result.NewBalance!.Value);
         await _ledgerStore.SetHoldingQuantityAsync(result.Name!, result.NewHoldingQuantity!.Value);
         

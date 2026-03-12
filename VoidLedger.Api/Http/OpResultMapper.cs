@@ -23,7 +23,7 @@ static class OpResultMapper
         {
             return 200;
         }
-        else if (code == ErrorCode.InvalidName || code == ErrorCode.InvalidAmount || code == ErrorCode.InvalidAmount)
+        else if (code == ErrorCode.InvalidName || code == ErrorCode.InvalidAmount )
         {
             return 400;
         }
@@ -33,6 +33,8 @@ static class OpResultMapper
         }
     }
 
+    // Translates domain/application operation results into HTTP responses so controllers
+    // can keep business error handling centralized and return a consistent ProblemDetails shape.
     public static IActionResult ToActionResult(OpResult result)
     {
         if (result.Ok == true)
@@ -47,7 +49,6 @@ static class OpResultMapper
         }
 
         int status = MapStatus(result.Code);
-
 
         ProblemDetails pd = new ProblemDetails
         {
