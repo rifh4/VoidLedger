@@ -19,17 +19,9 @@ namespace VoidLedger.Api.Controllers
         [HttpGet("recent")]
         public async Task<IActionResult> Recent([FromQuery] int take = 10)
         {
-            if (take <= 0)
+            if (take < 1)
             {
-                ProblemDetails pd = new ProblemDetails
-                {
-                    Title = "InvalidTake",
-                    Detail = "The query parameter must be a positive integer.",
-                    Status = 400
-                };
-
-                pd.Extensions["code"] = "InvalidTake";
-                return new ObjectResult(pd) { StatusCode = 400 };
+                return ApiProblemFactory.InvalidTake("take must be greater than 0.");
             }
 
             List<ActionRecordBase> actions = await _ledger.GetRecentActionsAsync(take);

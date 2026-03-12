@@ -10,8 +10,6 @@ public interface ILedgerService
     Task<OpResult> BuyAsync(string name, int qty);
     Task<OpResult> SellAsync(string name, int qty);
     Task<string> BuildPortfolioReportAsync();
-    Task<string> BuildRecentActionsReportAsync(int n);
-    Task<string> BuildActionsByTypeReportAsync(ActionType type, int n);
     Task<string> BuildTotalsReportAsync();
     Task<List<PriceSnapshot>> GetPricesAsync();
     Task<PortfolioValuation> GetPortfolioValuationAsync();

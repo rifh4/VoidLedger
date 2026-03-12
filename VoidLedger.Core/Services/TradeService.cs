@@ -1,5 +1,6 @@
 ﻿using VoidLedger.Core.Services;
 using VoidLedger.Core.Stores;
+using VoidLedger.Core.Utilities;
 
 namespace VoidLedger.Core;
 
@@ -19,9 +20,8 @@ public sealed class TradeService : ITradeService
     private TradeResult BuildBuyResult(string name, int qty, decimal? maybeUnitPrice, decimal currentBalance,
     int currentHoldingQuantity)
     {
-        string cleanName = (name ?? "").Trim().ToUpperInvariant();
 
-        if (cleanName.Length == 0)
+        if (name.Length == 0)
             return new TradeResult(false, ErrorCode.InvalidName, "Name cannot be empty", null, null, null, null, null);
 
         if (qty <= 0)
@@ -39,13 +39,13 @@ public sealed class TradeService : ITradeService
         decimal newBalance = currentBalance - total;
         int newHoldingQuantity = currentHoldingQuantity + qty;
 
-        string message = $"Bought {qty} {cleanName} for {Formatter.Money(total)}. Balance: {Formatter.Money(newBalance)}";
+        string message = $"Bought {qty} {name} for {Formatter.Money(total)}. Balance: {Formatter.Money(newBalance)}";
 
         return new TradeResult(
             true,
             ErrorCode.None,
             message,
-            cleanName,
+            name,
             unitPrice,
             total,
             newBalance,
@@ -54,7 +54,7 @@ public sealed class TradeService : ITradeService
 
     public async Task<OpResult> BuyAsync(string name, int qty)
     {
-        string cleanName = (name ?? "").Trim().ToUpperInvariant();
+        string cleanName = NameNormalizer.Normalize(name);
 
         PriceSnapshot? maybePriceSnapshot = await _ledgerStore.GetPriceAsync(cleanName);
         decimal? maybeUnitPrice = maybePriceSnapshot?.Price;
@@ -100,9 +100,8 @@ public sealed class TradeService : ITradeService
     decimal currentBalance,
     int? currentHoldingQuantity)
     {
-        string cleanName = (name ?? "").Trim().ToUpperInvariant();
 
-        if (cleanName.Length == 0)
+        if (name.Length == 0)
             return new TradeResult(false, ErrorCode.InvalidName, "Name cannot be empty", null, null, null, null, null);
 
         if (qty <= 0)
@@ -122,13 +121,13 @@ public sealed class TradeService : ITradeService
         decimal newBalance = currentBalance + total;
         int newHoldingQuantity = currentHoldingQuantity.Value - qty;
 
-        string message = $"Sold {qty} {cleanName} for {Formatter.Money(total)}. Balance: {Formatter.Money(newBalance)}";
+        string message = $"Sold {qty} {name} for {Formatter.Money(total)}. Balance: {Formatter.Money(newBalance)}";
 
         return new TradeResult(
             true,
             ErrorCode.None,
             message,
-            cleanName,
+            name,
             unitPrice,
             total,
             newBalance,
@@ -137,7 +136,7 @@ public sealed class TradeService : ITradeService
 
     public async Task<OpResult> SellAsync(string name, int qty)
     {
-        string cleanName = (name ?? "").Trim().ToUpperInvariant();
+        string cleanName = NameNormalizer.Normalize(name);
 
         PriceSnapshot? maybePriceSnapshot = await _ledgerStore.GetPriceAsync(cleanName);
         decimal? maybeUnitPrice = maybePriceSnapshot?.Price; 

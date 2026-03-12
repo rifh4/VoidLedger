@@ -2,6 +2,7 @@
 using VoidLedger.Core.Services;
 using VoidLedger.Core.Services.Models;
 using VoidLedger.Core.Stores;
+using VoidLedger.Core.Utilities;
 
 namespace VoidLedger.Core
 {
@@ -40,7 +41,7 @@ namespace VoidLedger.Core
 
         public async Task<OpResult> SetPriceAsync(string name, decimal price)
         {
-            string cleanName = (name ?? "").Trim().ToUpperInvariant();
+            string cleanName = NameNormalizer.Normalize(name);
 
             if (cleanName.Length == 0)
                 return new OpResult(false, ErrorCode.InvalidName, "Name cannot be empty.", null);
@@ -66,7 +67,7 @@ namespace VoidLedger.Core
 
         public async Task<PriceSnapshot?> GetPriceAsync(string name)
         {
-            string cleanName = (name ?? "").Trim().ToUpperInvariant();
+            string cleanName = NameNormalizer.Normalize(name);
             if (string.IsNullOrEmpty(cleanName))
             {
                 return null;
@@ -119,70 +120,20 @@ namespace VoidLedger.Core
             return sb.ToString();
         }
 
-        // Legacy text report for command-line style consumers.
-        // API callers that need structured data should use GetRecentActionsAsync().
-        public async Task<string> BuildRecentActionsReportAsync(int n)
-        {
-            if (n < 1)
-                return "No actions yet";
-
-            List<ActionRecordBase> actions = await _ledgerStore.GetRecentActionsAsync(n);
-
-            if (actions.Count == 0)
-                return "No actions yet";
-
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"Your last {actions.Count} actions:");
-
-            foreach (ActionRecordBase action in actions)
-            {
-                sb.AppendLine(action.Describe());
-            }
-
-            return sb.ToString();
-        }
-
-        // Same legacy text-report pattern as BuildRecentActionsReportAsync().
-        // Structured callers should prefer GetActionsByTypeAsync().
-        public async Task<string> BuildActionsByTypeReportAsync(ActionType type, int n)
-        {
-            if (n < 1)
-                return "Please enter a number greater than 0.";
-
-            List<ActionRecordBase> actions = await _ledgerStore.GetActionsByTypeAsync(type, n);
-
-            if (actions.Count == 0)
-                return $"No actions of type {type} found.";
-
-            StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"Last {actions.Count} actions of type {type}:");
-
-            foreach (ActionRecordBase action in actions)
-            {
-                sb.AppendLine(action.Describe());
-            }
-
-            return sb.ToString();
-        }
 
         // Text summary kept alongside GetTotalsAsync() for simple human-readable output.
         public async Task<string> BuildTotalsReportAsync()
         {
-            List<ActionRecordBase> actions = await _ledgerStore.GetAllActionsAsync();
+            TotalsSnapshot totals = await GetTotalsAsync();
 
-            if (actions.Count == 0)
+            if (totals.ActionCount == 0)
                 return "Nothing to report.";
 
-            decimal totalDeposited = actions.OfType<DepositAction>().Sum(a => a.Amount);
-            decimal totalSpentOnBuys = actions.OfType<BuyAction>().Sum(a => a.Total);
-            decimal totalEarnedFromSells = actions.OfType<SellAction>().Sum(a => a.Total);
-            decimal cashflow = totalDeposited - totalSpentOnBuys + totalEarnedFromSells;
-
             return $"\nTotals Report:" +
-                   $"\nDeposited: {Formatter.Money(totalDeposited)}" +
-                   $"\nSpent on buys: {Formatter.Money(totalSpentOnBuys)}" +
-                   $"\nEarned from sells: {Formatter.Money(totalEarnedFromSells)}" +
-                   $"\nNet cashflow: {Formatter.Money(cashflow)}.";
+                   $"\nDeposited: {Formatter.Money(totals.TotalDeposited)}" +
+                   $"\nSpent on buys: {Formatter.Money(totals.TotalSpentOnBuys)}" +
+                   $"\nEarned from sells: {Formatter.Money(totals.TotalEarnedFromSells)}" +
+                   $"\nNet cashflow: {Formatter.Money(totals.NetCashflow)}.";
         }
 
         public async Task<PortfolioValuation> GetPortfolioValuationAsync()
