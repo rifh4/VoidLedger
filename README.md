@@ -40,17 +40,6 @@ A good demo name is something like `DEMO_ORE_123`.
 ### Portfolio valuation
 <img src="docs/images/portfolio-valuation.png" alt="GET /portfolio/valuation structured JSON response" width="300" />
 
-### Swagger UI
-
-<!-- INSERT SCREENSHOT: Swagger UI -->
-
-### Price Movement Example
-
-<!-- INSERT SCREENSHOT: GET /prices/{name} response -->
-
-### Portfolio Valuation Example
-
-<!-- INSERT SCREENSHOT: GET /portfolio/valuation response -->
 
 ---
 
