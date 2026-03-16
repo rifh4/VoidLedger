@@ -353,9 +353,6 @@ Void Ledger was built as a deliberate backend learning project focused on becomi
 - testing
 - deployment
 - backend architecture
-
-The goal was not just to make something work, but to take it through:
-
 - initial console/domain modeling
 - API extraction
 - test hardening
@@ -364,14 +361,3 @@ The goal was not just to make something work, but to take it through:
 - SQL-backed persistence
 - endpoint polish
 
----
-
-## Project Status
-
-Feature-complete for the current intended scope.
-
-Next work, if extended in the future, would likely be one of:
-- authentication / account isolation
-- richer trading mechanics
-- a frontend client
-- more advanced reporting / analytics
