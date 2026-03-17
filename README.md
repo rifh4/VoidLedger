@@ -1,6 +1,6 @@
 # Void Ledger API
 
-Void Ledger is a REST API I built to simulate a sci-fi commodity trading market. I created this project specifically to get showcase experience building a complete backend system from scratch using ASP.NET Core, Entity Framework Core, and Azure SQL.
+I created this project to get hands-on experience building a complete backend system from scratch — from the API layer and business logic down to a real database and a live Azure deployment.
 
 You can view the live Swagger UI [here](https://voidledger-api-rifh.azurewebsites.net/swagger/index.html).
 
