@@ -2,7 +2,7 @@
 
 Void Ledger is a sci-fi trading API built with ASP.NET Core and Azure SQL.
 
-I used this as my main backend project to get hands-on practice with EF Core persistence, service-layer design, and deployment.
+I used this as my main backend project to get showcase EF Core persistence, service-layer design, and deployment.
 
 The API models a simple trading account where you can set prices, deposit cash, buy and sell commodities, inspect holdings, and view portfolio/reporting data through HTTP endpoints.
 
