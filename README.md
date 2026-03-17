@@ -31,24 +31,15 @@ A good demo name is something like `DEMO_ORE_123`.
 
 ## Screenshots
 
-> Add screenshots here after validation.
->
-> Recommended screenshots:
-> 1. Swagger UI with endpoint groups visible
-> 2. `GET /prices/{name}` showing price movement metadata
-> 3. `GET /portfolio/valuation` showing structured valuation JSON
+### Swagger UI overview
+<img src="docs/images/swagger-overview.png" alt="Swagger UI overview" width="400" />
 
-### Swagger UI
+### Price movement example
+<img src="docs/images/price-movement.png" alt="GET /prices/{name} showing previous price, change amount, and direction" width="300" />
 
-<!-- INSERT SCREENSHOT: Swagger UI -->
+### Portfolio valuation
+<img src="docs/images/portfolio-valuation.png" alt="GET /portfolio/valuation structured JSON response" width="300" />
 
-### Price Movement Example
-
-<!-- INSERT SCREENSHOT: GET /prices/{name} response -->
-
-### Portfolio Valuation Example
-
-<!-- INSERT SCREENSHOT: GET /portfolio/valuation response -->
 
 ---
 
@@ -362,9 +353,6 @@ Void Ledger was built as a deliberate backend learning project focused on becomi
 - testing
 - deployment
 - backend architecture
-
-The goal was not just to make something work, but to take it through:
-
 - initial console/domain modeling
 - API extraction
 - test hardening
@@ -373,14 +361,3 @@ The goal was not just to make something work, but to take it through:
 - SQL-backed persistence
 - endpoint polish
 
----
-
-## Project Status
-
-Feature-complete for the current intended scope.
-
-Next work, if extended in the future, would likely be one of:
-- authentication / account isolation
-- richer trading mechanics
-- a frontend client
-- more advanced reporting / analytics
