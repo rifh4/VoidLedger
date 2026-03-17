@@ -15,7 +15,7 @@ namespace VoidLedger.Api
 
             builder.Services.AddSingleton<IClock, SystemClock>();
 
-            // Use SQL Server with transient-failure retries because the live app runs against Azure-hosted infrastructure.
+            // Enable SQL retry handling for the Azure-hosted database.
             builder.Services.AddDbContext<VoidLedgerDbContext>(options =>
                 options.UseSqlServer(
                     builder.Configuration.GetConnectionString("VoidLedgerDb"),
@@ -31,7 +31,7 @@ namespace VoidLedger.Api
 
             WebApplication app = builder.Build();
 
-            // In non-development environments, return a stable ProblemDetails payload instead of raw exception details.
+            // In non-development, return ProblemDetails instead of raw exception details.
             if (!app.Environment.IsDevelopment())
             {
                 app.UseExceptionHandler(handlerApp =>

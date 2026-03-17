@@ -11,7 +11,7 @@ namespace VoidLedger.Core
         private readonly ITradeService _tradeService;
         private readonly IClock _clock;
 
-        // Persistence boundary (async). EF-backed implementation lives in Api.
+        // Async persistence boundary. The EF-backed implementation lives in the API project.
         private readonly ILedgerStore _ledgerStore;
 
         public LedgerService(ITradeService tradeService, IClock clock, ILedgerStore ledgerStore)
@@ -90,8 +90,8 @@ namespace VoidLedger.Core
             return result;
         }
 
-        // Legacy human-readable report kept for console/text consumers.
-        // Structured/API-facing callers should prefer GetPortfolioValuationAsync().
+        // Legacy text report for simple human-readable output.
+        // Structured callers should use GetPortfolioValuationAsync().
         public async Task<string> BuildPortfolioReportAsync()
         {
             StringBuilder sb = new StringBuilder();
@@ -121,7 +121,7 @@ namespace VoidLedger.Core
         }
 
 
-        // Text summary kept alongside GetTotalsAsync() for simple human-readable output.
+        // Text summary version of GetTotalsAsync().
         public async Task<string> BuildTotalsReportAsync()
         {
             TotalsSnapshot totals = await GetTotalsAsync();
@@ -152,8 +152,8 @@ namespace VoidLedger.Core
                 int quantity = holding.Quantity;
                 bool hasPrice = priceByName.TryGetValue(name, out decimal price);
 
-                // Missing price stays null in the structured response so callers can distinguish
-                // "unknown valuation" from a real zero-valued position.
+                // Leave missing prices as null so callers can distinguish
+                // unknown valuation from a real zero-valued position.
                 if (hasPrice)
                 {
                     decimal? currentPrice = price;

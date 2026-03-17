@@ -33,8 +33,8 @@ static class OpResultMapper
         }
     }
 
-    // Translates domain/application operation results into HTTP responses so controllers
-    // can keep business error handling centralized and return a consistent ProblemDetails shape.
+    // Map service results to HTTP responses so controllers stay thin
+    // and error responses use one ProblemDetails shape.
     public static IActionResult ToActionResult(OpResult result)
     {
         if (result.Ok == true)

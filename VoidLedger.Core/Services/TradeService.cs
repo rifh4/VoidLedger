@@ -15,8 +15,8 @@ public sealed class TradeService : ITradeService
         _clock = clock;
     }
 
-    // Build and validate the full buy outcome before mutating persisted state.
-    // This keeps the write path simple and ensures BuyAsync only performs writes for a valid trade.
+    // Build and validate the full buy outcome before writing anything.
+    // BuyAsync should only persist a valid trade.
     private TradeResult BuildBuyResult(string name, int qty, decimal? maybeUnitPrice, decimal currentBalance,
     int currentHoldingQuantity)
     {
@@ -73,8 +73,8 @@ public sealed class TradeService : ITradeService
             return new OpResult(false, result.Code, result.Message, null);
         }
 
-        // Persist the balance/holding state change first, then append the audit record,
-        // then flush once so the successful trade and its log are saved together.
+        // Apply the state change first, then append the audit record,
+        // then save once so the trade and its log stay aligned.
         await _ledgerStore.SetBalanceAsync(result.NewBalance!.Value);
         await _ledgerStore.SetHoldingQuantityAsync(result.Name!, result.NewHoldingQuantity!.Value);
         
@@ -91,8 +91,8 @@ public sealed class TradeService : ITradeService
         return new OpResult(true, ErrorCode.None, result.Message, rec);
     }
 
-    // Sell validation is resolved completely before writes so oversell/missing-price/missing-holding
-    // cases fail without partially mutating persisted balance or holdings.
+    // Resolve all sell validation before writing so oversell, missing-price,
+    // and missing-holding cases fail without partial state changes.
     private TradeResult BuildSellResult(
     string name,
     int qty,
@@ -155,8 +155,7 @@ public sealed class TradeService : ITradeService
             return new OpResult(false, result.Code, result.Message, null);
         }
 
-        // Same write order as BuyAsync: apply state changes first, then append the audit record,
-        // then save once so the persisted trade outcome and its log stay aligned.
+        // Same write order as BuyAsync: apply state changes, append the audit record, then save once.
         await _ledgerStore.SetBalanceAsync(result.NewBalance!.Value);
         await _ledgerStore.SetHoldingQuantityAsync(result.Name!, result.NewHoldingQuantity!.Value);
         
