@@ -1,21 +1,10 @@
-# Void Ledger
+# Void Ledger API
 
-Void Ledger is a sci-fi trading API built with ASP.NET Core and Azure SQL.
+Void Ledger is a REST API I built to simulate a sci-fi commodity trading market. I created this project to get hands-on experience building a full backend system with ASP.NET Core, Entity Framework Core, and Azure SQL.
 
-I used this as my main backend project to get showcase EF Core persistence, service-layer design, and deployment.
+You can view the live Swagger UI [here](https://voidledger-api-rifh.azurewebsites.net/swagger/index.html).
 
-The API models a simple trading account where you can set prices, deposit cash, buy and sell commodities, inspect holdings, and view portfolio/reporting data through HTTP endpoints.
-
-## Live Demo
-
-Swagger UI:  
-https://voidledger-api-rifh.azurewebsites.net/swagger/index.html
-
-This is a **public shared demo instance**, so the data is shared between visitors and may change between sessions.
-
-When testing the API, it helps to use a unique commodity name such as `DEMO_ORE_123`.
-
----
+**Note on the live demo:** The database is publicly shared, so the state can change while you are using it if someone else is sending requests at the same time. If you want to test the endpoints, it helps to use a unique commodity name such as `TEST_ORE_948` so your data does not overlap with other users.
 
 ## Screenshots
 
@@ -28,305 +17,81 @@ When testing the API, it helps to use a unique commodity name such as `DEMO_ORE_
 ### Portfolio valuation
 <img src="docs/images/portfolio-valuation.png" alt="GET /portfolio/valuation structured JSON response" width="300" />
 
----
+## Project Goals
 
-## What the API Covers
+My main goal with this project was to move beyond tutorials and build something with a proper layered backend structure. I focused on learning how to:
 
-Void Ledger supports:
+- connect an API to a real SQL database with EF Core
+- keep controllers separate from business logic
+- handle expected failures cleanly without relying on exceptions for normal flow
+- deploy a Dockerized application to Azure App Service
 
-- setting commodity prices
-- depositing cash
-- buying commodities
-- selling commodities
-- viewing holdings
-- viewing portfolio valuation
-- viewing recent actions and totals
-- viewing price movement metadata
+## Core Features
 
-To make prices a little more interesting than a single number, the price endpoints also expose:
+The API lets a client manage a simulated trading account. It supports:
 
-- current price
-- previous price
-- updated-at UTC timestamp
-- derived change amount
-- derived direction (`Up`, `Down`, `Flat`, `Unknown`)
+- depositing virtual cash into the account
+- setting and updating commodity prices
+- buying and selling commodities at the current market price
+- generating a detailed portfolio valuation
+- viewing a history of recent account actions
 
----
+To make the market feel a little less static, I also added price movement metadata. When a user requests a price, the API returns the previous price, the difference, and a direction string such as `Up`, `Down`, or `Flat`.
 
-## Suggested Demo Flow
+## How the Code Is Organized
 
-A user can try the API in this order:
+I split the solution into three projects to keep responsibilities separate.
 
-1. `POST /prices` with a new commodity name
-2. `POST /prices` again with a different price
-3. `GET /prices/{name}` to see `previousPrice`, `changeAmount`, and `direction`
-4. `POST /deposit`
-5. `POST /trade/buy`
-6. `POST /trade/sell`
-7. `GET /portfolio/valuation`
-8. `GET /actions/recent?take=10`
-9. `GET /reports/totals`
+**1. VoidLedger.Api**  
+This project handles the web layer. It contains the controllers, dependency injection setup, and the Entity Framework Core `DbContext`. I tried to keep the controllers thin so they mostly receive HTTP requests, pass work to the service layer, and map the results back to HTTP responses.
 
----
+**2. VoidLedger.Core**  
+This is where the business logic lives. It contains services such as `LedgerService` and `TradeService`. I also defined store interfaces here so the core logic does not depend directly on Entity Framework.
 
-## Main Endpoints
+**3. VoidLedger.Core.Tests**  
+This project contains the unit tests. I used xUnit and a fake in-memory store so I could test buy, sell, and valuation behavior without needing a real database connection.
 
-### Prices
-- `POST /prices`
-- `GET /prices`
-- `GET /prices/{name}`
+## Design Choices
 
-### Trading
-- `POST /deposit`
-- `POST /trade/buy`
-- `POST /trade/sell`
+### The OpResult pattern
+Instead of letting exceptions drive normal business failures, I created an `OpResult` class. Core service methods return an `OpResult` with a success flag, an `ErrorCode`, and a message. In the API layer, a mapper translates those results into the correct HTTP responses.
 
-### Portfolio
-- `GET /portfolio`  
-  Legacy text report
-- `GET /portfolio/valuation`  
-  Structured portfolio response
+### Portfolio valuation logic
+I spent extra time on the `/portfolio/valuation` endpoint. A user might own a commodity even when its current price is missing from the database. Instead of failing or pretending the value is zero, the API returns `null` for that position's value while still calculating totals for the positions that do have prices.
 
-### Actions / Reports
-- `GET /actions/recent?take=10`
-- `GET /reports/totals`
-- `GET /reports/actions/by-type?type=Buy&take=10`
+## Running the Project Locally
 
----
+To run this on your own machine, you will need the .NET 8 SDK.
 
-## Example Responses
-
-### `GET /prices/{name}`
-
-```json
-{
-  "name": "DEMO_ORE",
-  "price": 8,
-  "previousPrice": 5,
-  "updatedAtUtc": "2026-03-12T19:20:48.6114274",
-  "changeAmount": 3,
-  "direction": "Up"
-}
-```
-
-### `GET /portfolio/valuation`
-
-```json
-{
-  "positions": [
-    {
-      "name": "DEMO_ORE",
-      "quantity": 3,
-      "currentPrice": 8,
-      "positionValue": 24
-    }
-  ],
-  "cashBalance": 276,
-  "totalPortfolioValue": 24,
-  "totalAccountValue": 300
-}
-```
-
-### `GET /reports/totals`
-
-```json
-{
-  "actionCount": 5,
-  "totalDeposited": 300,
-  "totalSpentOnBuys": 32,
-  "totalEarnedFromSells": 8,
-  "netCashflow": 276
-}
-```
-
----
-
-## Tech Stack
-
-- C# / .NET 8
-- ASP.NET Core Web API
-- Entity Framework Core
-- Azure SQL
-- Azure App Service
-- xUnit
-- GitHub Actions
-- Docker
-
----
-
-## Solution Structure
-
-The solution is split into three projects:
-
-### `VoidLedger.Api`
-Handles the HTTP layer and runtime setup.
-
-Responsibilities:
-- controllers
-- request/response DTOs
-- EF Core DbContext, entities, and migrations
-- HTTP result mapping
-- dependency injection
-- deployment/runtime configuration
-
-### `VoidLedger.Core`
-Contains the application logic.
-
-Responsibilities:
-- service layer
-- result contracts
-- business rules
-- store abstractions
-- trading orchestration
-- read models
-
-### `VoidLedger.Core.Tests`
-Covers the service layer with automated tests.
-
-Responsibilities:
-- unit tests
-- fake store/test support
-- regression coverage for core flows
-
----
-
-## Design Notes
-
-### SQL as the source of truth
-The runtime does not depend on in-memory state. Prices, holdings, balances, and action logs are persisted in Azure SQL.
-
-### Thin controllers
-Controllers delegate behavior to services and stay focused on HTTP concerns.
-
-### Consistent failure handling
-Expected business failures are returned through `OpResult + ErrorCode` and mapped to HTTP responses consistently.
-
-### Additive API evolution
-Older text-style endpoints were kept where still useful, while newer structured endpoints were added for cleaner machine-readable responses.
-
----
-
-## Running Locally
-
-### 1. Restore and build
+1. Clone the repository.
+2. Open a terminal in the root folder.
+3. Restore the packages:
 
 ```bash
 dotnet restore
-dotnet build
 ```
 
-### 2. Run the API
+4. Run the API project:
 
 ```bash
 dotnet run --project VoidLedger.Api
 ```
 
-### 3. Open Swagger
+You will also need to provide a SQL Server connection string named `VoidLedgerDb` in your user secrets or `appsettings.Development.json` file.
 
-Open the local Swagger URL shown by ASP.NET Core at startup.
+If you prefer to use Docker, the repository includes a `Dockerfile` that you can build and run as long as you pass the required environment variables.
 
----
+## Testing
 
-## Local Configuration
-
-The project uses this connection string name:
-
-`ConnectionStrings:VoidLedgerDb`
-
-For local development, secrets should stay outside the repo, for example with User Secrets.
-
-The live deployment uses Azure App Service configuration for environment-specific settings.
-
----
-
-## Running Tests
+Run the test suite with:
 
 ```bash
 dotnet test
 ```
 
-The test suite covers backend behavior such as:
+The tests cover the main business paths, including:
 
-- valid and invalid price setting
-- valid and invalid deposits
-- buy/sell success and failure paths
-- missing price / missing holding / oversell
-- invalid name handling
-- portfolio valuation behavior
-- reporting behavior
-
----
-
-## Running with Docker
-
-Build the image:
-
-```bash
-docker build -t voidledger-api:dev .
-```
-
-Run the container:
-
-```bash
-docker run --rm --name voidledger-api-dev -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Development voidledger-api:dev
-```
-
-Then open Swagger through the containerized app.
-
----
-
-## Deployment
-
-The API is deployed to **Azure App Service** and uses **Azure SQL** for persistence.
-
-Live Swagger UI:  
-https://voidledger-api-rifh.azurewebsites.net/swagger/index.html
-
-Deployment work in this project included:
-
-- Dockerizing the API
-- publishing to Azure App Service
-- configuring Azure settings and connection strings
-- applying EF Core migrations to Azure SQL
-- verifying persisted behavior across restarts and redeploys
-
----
-
-## Scope
-
-This project is intentionally scoped as a backend portfolio project.
-
-### Included
-- single-account trading flow
-- persisted prices, holdings, actions, and balance
-- reporting endpoints
-- price movement metadata
-- live Azure deployment
-
-### Not included
-- authentication / authorization
-- multi-user account isolation
-- frontend client
-- background market simulation
-- stations, factions, travel time, or shipments
-- production-grade security / rate limiting
-
----
-
-## What I’d Improve Next
-
-If I kept expanding this project, the next things I would look at are:
-
-- moving beyond the current single-account assumption
-- adding authentication and account isolation
-- storing full price history instead of only the latest and previous price
-
----
-
-## Notes for Users
-
-- The live app is a shared public demo.
-- Data can change between sessions.
-- Use a unique commodity name when testing.
-- `/portfolio` is intentionally kept as a legacy text endpoint.
-- `/portfolio/valuation` is the structured portfolio endpoint.
+- rejecting negative deposits
+- preventing users from selling more than they own
+- validating buy and sell flows
+- checking portfolio valuation behavior under different pricing conditions
