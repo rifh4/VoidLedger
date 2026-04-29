@@ -1,148 +1,331 @@
-# Void Ledger API
+# Void Ledger — Fullstack Trading Simulation System
 
-I created this project to get hands-on experience building a complete backend system from scratch — from the API layer and business logic down to a real database and a live Azure deployment.
+Void Ledger is a fullstack trading simulation system built around a fictional commodity market.
 
-You can view the live Swagger UI [here](https://voidledger-api-rifh.azurewebsites.net/swagger/index.html).
+The backend is an ASP.NET Core API that handles prices, trading rules, portfolio valuation, reporting, persistence, and validation. The frontend is a React dashboard that consumes the live API and provides a simple interface for viewing portfolio data, updating prices, trading commodities, and reviewing account activity.
 
-**Note on the live demo:** The database is publicly shared. Because of this, the state might change while you are using it if someone else is also sending requests. If you want to test the endpoints, it helps to create a commodity with a unique name (for example, `TEST_ORE_948`) so your data does not overlap with other visitors.
+## Live Demo
+
+- Live App: https://brave-glacier-00e11d803.7.azurestaticapps.net
+- API / Swagger: https://voidledger-api-rifh.azurewebsites.net/swagger/index.html
+
+**Note on the live demo:** The database is publicly shared. Because of this, the state might change while you are using it if someone else is also interacting with the app or API. If you want to test price updates or trading flows, it helps to use a unique commodity name, for example `TEST_ORE_948`.
 
 ## Screenshots
 
-### Swagger UI overview
-<img src="docs/images/swagger-overview.png" alt="Swagger UI overview" width="400" />
-
-### Price movement example
-<img src="docs/images/price-movement.png" alt="GET /prices/{name} showing previous price, change amount, and direction" width="300" />
-
-### Portfolio valuation
-<img src="docs/images/portfolio-valuation.png" alt="GET /portfolio/valuation structured JSON response" width="300" />
-
-## Project Goals
-
-My main goal with this project was to  build an application with a proper layered architecture. I focused on how to:
-
-* Connect an API to a real SQL database using EF Core.
-* Separate my HTTP controllers from my core business logic.
-* Handle expected errors cleanly without throwing exceptions everywhere.
-* Automate my testing process using GitHub Actions.
-* Containerize and deploy the application using Docker and Azure App Service.
-
-## Core Features
-
-The API allows a client to manage a simulated trading account. The available actions are:
-
-* Depositing virtual cash into the account.
-* Setting and updating the market prices of commodities.
-* Buying and selling commodities based on the current market price.
-* Generating a detailed portfolio valuation.
-* Viewing a history of recent account actions.
-
-To make the market feel slightly more dynamic, I added logic to track price movements. When you request a price, the API also returns the previous price, the mathematical difference, and a direction string (`Up`, `Down`, or `Flat`).
-
-## Main Endpoints
+### Dashboard
+<img src="docs/images/dashboard.png" alt="Void Ledger dashboard showing portfolio valuation and current positions" width="400" />
 
 ### Prices
-* `POST /prices`
-* `GET /prices`
-* `GET /prices/{name}`
+<img src="docs/images/prices.png" alt="Void Ledger prices page showing current prices, price update form, and lookup result" width="400" />
 
 ### Trading
-* `POST /deposit`
-* `POST /trade/buy`
-* `POST /trade/sell`
+<img src="docs/images/trading.png" alt="Void Ledger trading page showing deposit, buy, and sell forms" width="400" />
 
-### Portfolio and reporting
-* `GET /portfolio`
-* `GET /portfolio/valuation`
-* `GET /actions/recent?take=10`
-* `GET /reports/totals`
-* `GET /reports/actions/by-type?type=Buy&take=10`
+### Reports
+<img src="docs/images/reports.png" alt="Void Ledger reports page showing account totals and action reports" width="400" />
 
-## How the Code is Organized
+## Features
 
-I divided the solution into three distinct projects to keep responsibilities separate:
+### Dashboard
 
-**1. VoidLedger.Api**  
-This project handles the web layer. It contains the Controllers, the setup for Dependency Injection, and the Entity Framework Core `DbContext`. I tried to keep the controllers as thin as possible. Their job is to receive the HTTP request, pass the data to the service layer, and then map the result back to an HTTP response.
+- View cash balance, portfolio value, and total account value
+- View current commodity positions
+- Display position values based on current market prices
 
-**2. VoidLedger.Core**  
-This is where the actual business logic lives. It contains the `LedgerService` and `TradeService`. I created store interfaces (like `ILedgerStore`) here so that the core logic does not have a direct dependency on Entity Framework.
+### Prices
 
-**3. VoidLedger.Core.Tests**  
-This project contains my unit tests. I used xUnit and created a fake in-memory version of the store so I could test the buy, sell, and valuation logic without needing a real database connection.
+- List current commodity prices
+- Set or update a commodity price
+- Look up a specific commodity by name
+- Show previous price, change amount, and movement direction
 
-## Design Choices
+### Trading
 
-### The OpResult Pattern
+- Deposit virtual cash
+- Buy commodities using the current market price
+- Sell owned commodities
+- Display backend validation errors clearly in the UI
 
-Instead of letting exceptions bubble up when a user tries to buy something they cannot afford, I created an `OpResult` class. Every core service method returns an `OpResult` that contains a success flag, an `ErrorCode` enum, and a message. In the API layer, I wrote a mapper that checks these results and translates them into the correct HTTP status codes.
+### Reports
 
-### Portfolio Valuation Logic
-
-I spent extra time on the `/portfolio/valuation` endpoint. A user might own a commodity even when the current price for that commodity is missing from the database. Instead of failing or assuming the value is zero, the endpoint returns `null` for that specific position value while still calculating totals for the assets that do have prices.
-
-## Infrastructure and Automation
-
-I wanted to get some hands-on experience with how applications are actually built and deployed in the real world, so I did not stop at just running it locally in my IDE.
-
-### Continuous Integration (GitHub Actions)
-
-To make sure I was not breaking old features while adding new ones, I wrote a simple YAML workflow (`dotnet-tests.yml`). Every time I push code to the repository, a GitHub Action restores the dependencies, builds the project, and runs the xUnit test suite.
-
-### Docker
-
-I wrote a `Dockerfile` for the API using a multi-stage build. It uses the official .NET 8 SDK image to build and publish the application, and then copies the output into a lighter ASP.NET runtime image. This helps keep the runtime image smaller and makes local and deployed runs more consistent.
-
-### Azure Deployment
-
-The project is deployed to Azure App Service and uses Azure SQL for persistence. I used this project to get hands-on practice with publishing a containerized app, configuring connection strings and app settings, and making sure the persisted state survives redeploys.
+- View account totals
+- Load recent ledger actions
+- Filter actions by type
+- Review deposits, buys, sells, and price-related activity
 
 ## Tech Stack
 
-* C# / .NET 8
-* ASP.NET Core Web API
-* Entity Framework Core
-* Azure SQL
-* Azure App Service
-* xUnit
-* GitHub Actions
-* Docker
+### Backend
+
+- C# / .NET 8
+- ASP.NET Core Web API
+- Entity Framework Core
+- Azure SQL
+- xUnit
+- Docker
+- Swagger / OpenAPI
+
+### Frontend
+
+- React
+- Vite
+- React Router
+- CSS
+- Service-based API access
+
+### Deployment
+
+- Azure App Service for the backend API
+- Azure Static Web Apps for the frontend
+- GitHub Actions
+- Azure SQL for persistence
+
+## Architecture
+
+Void Ledger is split into a backend API and a frontend client.
+
+The backend handles the business rules, validation, persistence, portfolio valuation, and reporting. The frontend is a React single-page application that consumes the backend API and presents the system through routed pages.
+
+The frontend is organized around four main pages:
+
+- `Dashboard`
+- `Prices`
+- `Trading`
+- `Reports`
+
+API calls in the frontend are kept in service files instead of being written directly inside React components. Page components own their local UI state, while derived values are calculated during rendering. Data loading uses `useEffect` only where the page needs to load data automatically, such as the Dashboard and Reports totals. User-triggered actions, such as buying, selling, updating prices, or looking up a commodity, stay inside submit or click handlers.
+
+The frontend also uses a small API configuration helper so local development can use the Vite `/api` proxy, while production builds use the deployed backend URL through `VITE_API_BASE_URL`.
+
+## Backend Project Structure
+
+The backend is divided into separate projects to keep responsibilities clear.
+
+### `VoidLedger.Api`
+
+This project handles the web layer. It contains the controllers, dependency injection setup, Entity Framework Core `DbContext`, API configuration, and HTTP response mapping.
+
+The controllers are intentionally thin. Their job is to receive HTTP requests, call the service layer, and return the correct HTTP response.
+
+### `VoidLedger.Core`
+
+This project contains the main business logic, including the ledger and trading services.
+
+The core layer defines store interfaces such as `ILedgerStore`, so the business logic does not directly depend on Entity Framework Core.
+
+### `VoidLedger.Core.Tests`
+
+This project contains the xUnit test suite.
+
+The tests use fake in-memory store implementations so the main business paths can be tested without requiring a real database connection.
+
+## Frontend Project Structure
+
+The React frontend is located in:
+
+```text
+void-ledger-client
+```
+
+Important frontend folders:
+
+```text
+void-ledger-client/src/pages
+void-ledger-client/src/services
+void-ledger-client/src/components
+```
+
+The page components contain the UI state and rendering logic for each route.
+
+The service files handle API requests, URL construction, response parsing, and backend error handling.
+
+Shared display components include:
+
+- `SummaryCard`
+- `ActionsTable`
+
+## Main API Endpoints
+
+### Prices
+
+- `POST /prices`
+- `GET /prices`
+- `GET /prices/{name}`
+
+### Trading
+
+- `POST /deposit`
+- `POST /trade/buy`
+- `POST /trade/sell`
+
+### Portfolio and Reporting
+
+- `GET /portfolio/valuation`
+- `GET /actions/recent?take=10`
+- `GET /reports/totals`
+- `GET /reports/actions/by-type?type=Buy&take=10`
+
+## Design Choices
+
+### OpResult Pattern
+
+Instead of letting expected business validation failures become exceptions, the core services return operation results.
+
+For example, buying without enough cash or selling more than the current holding is treated as a controlled business result. The API layer maps these results into appropriate HTTP responses with clear error messages.
+
+This keeps expected validation failures separate from unexpected system exceptions.
+
+### Portfolio Valuation Logic
+
+The `/portfolio/valuation` endpoint calculates the current account state based on cash balance, holdings, and current commodity prices.
+
+If a position exists but the current price is missing, the endpoint does not crash or assume a false value. Instead, it returns a nullable position value while still calculating the values that can be calculated safely.
+
+### Frontend State Discipline
+
+The React frontend follows a simple separation:
+
+- API response data is stored in state.
+- User input is stored in state.
+- Derived display values are calculated during render.
+- Automatic page-load requests use `useEffect`.
+- User-triggered requests stay in event handlers.
+
+This keeps the frontend predictable and avoids unnecessary global state.
+
+## Infrastructure and Deployment
+
+### Backend Deployment
+
+The backend API is deployed to Azure App Service and uses Azure SQL for persistence.
+
+The API was originally built as a backend-focused project with Docker and GitHub Actions. It includes a Dockerfile for containerized deployment and a GitHub Actions workflow for build/test automation.
+
+### Frontend Deployment
+
+The frontend is deployed separately with Azure Static Web Apps.
+
+The React app is built with Vite and deployed from the `void-ledger-client` folder. The production frontend uses:
+
+```text
+VITE_API_BASE_URL
+```
+
+to call the deployed backend API.
+
+Client-side routing is supported through:
+
+```text
+void-ledger-client/public/staticwebapp.config.json
+```
+
+so routes like `/prices`, `/trading`, and `/reports` can be refreshed directly in the browser.
+
+### CORS
+
+Because the frontend and backend are deployed to different Azure URLs, the backend App Service must allow the frontend origin through CORS.
 
 ## Running the Project Locally
 
-If you have the .NET 8 SDK installed, you can run the project directly:
+### Backend
 
-1. Clone the repository and open a terminal in the root folder.
-2. Restore the packages: `dotnet restore`
-3. Run the API project: `dotnet run --project VoidLedger.Api`
+From the repository root, restore packages:
 
-**Note:** You will need to provide a SQL Server connection string named `VoidLedgerDb` in your user secrets.
+```bash
+dotnet restore
+```
+
+Run the API project:
+
+```bash
+dotnet run --project VoidLedger.Api
+```
+
+The backend requires a SQL Server connection string named:
+
+```text
+VoidLedgerDb
+```
+
+When running locally, Swagger is available from the API launch URL.
+
+### Frontend
+
+Go to the frontend folder:
+
+```bash
+cd void-ledger-client
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the development server:
+
+```bash
+npm run dev
+```
+
+In local development, Vite proxies `/api` requests to the deployed backend API. This is configured in:
+
+```text
+void-ledger-client/vite.config.js
+```
+
+Build the frontend:
+
+```bash
+npm run build
+```
 
 ## Running with Docker
 
-If you prefer not to install the .NET SDK, you can build and run the container directly:
+The backend API can also be built and run with Docker:
 
-`docker build -t voidledger-api:dev .`  
-`docker run --rm --name voidledger-api-dev -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Development voidledger-api:dev`
+```bash
+docker build -t voidledger-api:dev .
+```
+
+```bash
+docker run --rm --name voidledger-api-dev -p 8080:8080 -e ASPNETCORE_ENVIRONMENT=Development voidledger-api:dev
+```
 
 ## Testing
 
-You can run the full test suite with:
+Run the backend test suite with:
 
-`dotnet test`
+```bash
+dotnet test
+```
 
 The tests cover the main business paths, including:
 
-* rejecting negative deposits
-* rejecting invalid price updates
-* preventing users from selling more than they own
-* handling missing prices and missing holdings
-* portfolio valuation behavior under different conditions
+- rejecting negative deposits
+- rejecting invalid price updates
+- preventing users from selling more than they own
+- handling missing prices and missing holdings
+- portfolio valuation behavior under different conditions
+
+## Notes and Limitations
+
+- The live app uses shared demo data, so values may change over time.
+- The Azure Static Web Apps URL is automatically generated by Azure.
+- A cleaner production URL would require a custom domain.
+- The current MVP assumes a single trading account.
+- Authentication and multi-user account isolation are intentionally not included.
+- Azure SQL firewall and connection settings may need adjustment when running or deploying from a new environment.
 
 ## What I’d Improve Next
 
-If I kept expanding the project, the next things I would look at are:
+If I continued expanding this project, the next improvements I would consider are:
 
-* moving beyond the current single-account assumption
-* adding authentication and account isolation
-* storing full price history instead of only the latest and previous price
+- adding authentication and account isolation
+- supporting multiple users or portfolios
+- storing full price history instead of only latest and previous prices
+- adding richer frontend validation
+- improving the report views with charts or export options
+- adding more end-to-end deployment documentation
