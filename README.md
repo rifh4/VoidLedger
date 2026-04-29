@@ -6,7 +6,7 @@ The backend is an ASP.NET Core API that handles prices, trading rules, portfolio
 
 ## Live Demo
 
-- Live App: https://brave-glacier-00e11d803.7.azurestaticapps.net
+- Live App: www.voidledger-rifh4.dev
 - API / Swagger: https://voidledger-api-rifh.azurewebsites.net/swagger/index.html
 
 **Note on the live demo:** The database is publicly shared. Because of this, the state might change while you are using it if someone else is also interacting with the app or API. If you want to test price updates or trading flows, it helps to use a unique commodity name, for example `TEST_ORE_948`.
