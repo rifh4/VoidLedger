@@ -1,17 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent, ReactNode, SubmitEvent } from "react";
 import { getReportTotals, getRecentActions, getActionsByType } from "../services/reportsService";
 import SummaryCard from "../components/SummaryCard";
 import ActionsTable from "../components/ActionsTable";
+import type { ActionDto, ReportTotalsDto } from "../services/apiTypes";
 
 function Reports(){
 
     // Totals load automatically because they are the default report summary.
-    const [totals, setTotals] = useState(null);
+    const [totals, setTotals] = useState<ReportTotalsDto | null>(null);
     const [isTotalsLoading, setIsTotalsLoading] = useState(true);
     const [totalsError, setTotalsError] = useState("");
 
     // Recent actions are user-triggered because the user controls how many actions to load.
-    const [recentActions, setRecentActions] = useState([]);
+    const [recentActions, setRecentActions] = useState<ActionDto[]>([]);
     const [isRecentActionsLoading, setIsRecentActionsLoading] = useState(false);
     const [recentActionsError, setRecentActionsError] = useState("");
     const [takeInput, setTakeInput] = useState("");
@@ -19,7 +20,7 @@ function Reports(){
     // Actions by type are user-triggered because both type and result count are selected by the user.
     const [actionType, setActionType] = useState("sell");
     const [actionTypeTake, setActionTypeTake] = useState("");
-    const [actionsByType, setActionsByType] = useState([]);
+    const [actionsByType, setActionsByType] = useState<ActionDto[]>([]);
     const [isActionsByTypeLoading, setIsActionsByTypeLoading] = useState(false);
     const [actionsByTypeError, setActionsByTypeError] = useState("");
 
@@ -32,7 +33,12 @@ function Reports(){
                 setTotals(totalsResponse);
             }
             catch(error){
-                setTotalsError(error.message);
+                if (error instanceof Error) {
+                    setTotalsError(error.message);
+                }
+                else {
+                    setTotalsError("Fetching reports totals failed.");
+                }
             }
             finally{
                 setIsTotalsLoading(false);
@@ -43,10 +49,10 @@ function Reports(){
     )
 
     // Recent actions request uses the current take input.
-    function onTakeInputChange(event){
+    function onTakeInputChange(event: ChangeEvent<HTMLInputElement>){
         setTakeInput(event.target.value);
     }
-    async function onRecentActionsSubmit(event){
+    async function onRecentActionsSubmit(event: SubmitEvent<HTMLFormElement>){
         try{
             event.preventDefault();
             setRecentActionsError("");
@@ -56,7 +62,12 @@ function Reports(){
             setRecentActions(response.items);
         }
         catch(error){
-            setRecentActionsError(error.message);
+            if (error instanceof Error) {
+                setRecentActionsError(error.message);
+            }
+            else {
+                setRecentActionsError("Fetching recent actions failed.");
+            }
         }
         finally{
             setIsRecentActionsLoading(false);
@@ -64,13 +75,13 @@ function Reports(){
     }
 
     // Actions by type request uses the selected action type and take input.
-    function onActionTypeChange(event){
+    function onActionTypeChange(event: ChangeEvent<HTMLSelectElement>){
         setActionType(event.target.value);
     }
-    function onActionTypeTakeChange(event){
+    function onActionTypeTakeChange(event: ChangeEvent<HTMLInputElement>){
         setActionTypeTake(event.target.value);
     }
-    async function onActionsByTypeSubmit(event){
+    async function onActionsByTypeSubmit(event: SubmitEvent<HTMLFormElement>){
         try{
             event.preventDefault();
             setActionsByTypeError("");
@@ -80,7 +91,12 @@ function Reports(){
             setActionsByType(response.items);
         }
         catch(error){
-            setActionsByTypeError(error.message);
+            if (error instanceof Error) {
+                setActionsByTypeError(error.message);
+            }
+            else {
+                setActionsByTypeError("Fetching actions by type failed.");
+            }
         }
         finally{
             setIsActionsByTypeLoading(false);
@@ -88,14 +104,14 @@ function Reports(){
     }
 
     // Totals section has its own loading and error state.
-    let totalsContext;
+    let totalsContext: ReactNode;
     if(isTotalsLoading){
         totalsContext = <p>Loading all reports...</p>
     }
     else if(totalsError !== ""){
         totalsContext = <p>{totalsError}</p>
     }
-    else{
+    else if (totals !== null){
         totalsContext =(
             <section>
                 <section className="summary-grid">
@@ -108,10 +124,13 @@ function Reports(){
             </section>
         )
     }
+    else {
+        totalsContext = <p>No report totals loaded.</p>
+    }
 
     // Recent actions stay separate from totals so request errors do not affect the summary.
     const hasRecentActions = recentActions.length > 0;
-    let recentActionsContent;
+    let recentActionsContent: ReactNode;
     if(isRecentActionsLoading){
         recentActionsContent = <p>Loading recent actions...</p>
     }
@@ -127,7 +146,7 @@ function Reports(){
 
     // Actions by type uses the same display table but keeps independent request state.
     const hasActionsByType = actionsByType.length > 0;
-    let actionsByTypeContent;
+    let actionsByTypeContent: ReactNode;
     if(isActionsByTypeLoading){
         actionsByTypeContent = <p>Loading actions by type...</p>;
     }

@@ -1,4 +1,10 @@
-function ActionsTable({ actions }){
+import type { ActionDto } from "../services/apiTypes";
+
+type ActionsTableProps = {
+    actions: ActionDto[];
+};
+
+function ActionsTable({ actions }: ActionsTableProps) {
     return (
         <table className="positions-table">
             <thead>
