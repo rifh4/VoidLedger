@@ -2,7 +2,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 // Build consistent API URLs without duplicating base-url logic across service files.
-export function buildApiUrl(path) {
+export function buildApiUrl(path: string): string {
     const normalizedBaseUrl = API_BASE_URL.endsWith("/")
         ? API_BASE_URL.slice(0, -1)
         : API_BASE_URL;

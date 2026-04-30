@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, ReactNode } from 'react'
+import type { PortfolioValuationDto } from '../services/apiTypes'
 import getPortfolioValuation from '../services/portfolioService';
 import SummaryCard from '../components/SummaryCard';
 
 
-function Dashboard(){
+function Dashboard() {
 
 
-    const [valuation, setValuation] = useState(null);
+    const [valuation, setValuation] = useState<PortfolioValuationDto | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -18,8 +19,13 @@ function Dashboard(){
         setValuation(portfolioValuation);
       }
       catch(error){
-        setError(error.message);
-      }
+        if (error instanceof Error) {
+            setError(error.message);
+        }
+        else {
+            setError("Fetching portfolio failed.");
+        }
+    }
       finally{
         setIsLoading(false);
       }
@@ -33,7 +39,7 @@ function Dashboard(){
     const hasPositions = positions.length > 0;
 
 
-    let dashboardContent;
+    let dashboardContent: ReactNode;
 
     if (isLoading){
     dashboardContent = <p>Loading portfolio valuation...</p>

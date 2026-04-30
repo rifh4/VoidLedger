@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, ChangeEvent, ReactNode, SubmitEvent } from "react";
 import { getPrices, setPrice, getPriceByName } from "../services/pricesService";
+import type { PriceDto } from "../services/apiTypes";
 
 
 function Prices(){
 
     // Price list and set-price form state.
-    const [prices, setPrices] = useState([]);
+    const [prices, setPrices] = useState<PriceDto[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [submitError, setSubmitError] = useState("");
     const [loadError, setLoadError] = useState("");
@@ -16,7 +17,7 @@ function Prices(){
 
     // Lookup state is separate so search feedback does not affect the main price list.
     const [lookupName, setLookupName] = useState("");
-    const [lookupResult, setLookupResult] = useState(null);
+    const [lookupResult, setLookupResult] = useState<PriceDto | null>(null);
     const [isLookupLoading, setIsLookupLoading] = useState(false);
     const [lookupError, setLookupError] = useState("");
 
@@ -28,7 +29,12 @@ function Prices(){
         setPrices(responseprices);
       }
       catch(error){
-        setLoadError(error.message);
+        if (error instanceof Error) {
+            setLoadError(error.message);
+        }
+        else {
+            setLoadError("Fetching prices failed.");
+        }
       }
       finally{
         setIsLoading(false);
@@ -38,14 +44,14 @@ function Prices(){
         }, []
     )
 
-    function onNameChange(event){
+    function onNameChange(event: ChangeEvent<HTMLInputElement>){
         setNameInput(event.target.value)
     }
-    function onPriceChange(event){
+    function onPriceChange(event: ChangeEvent<HTMLInputElement>){
         setPriceInput(event.target.value)
     }
     // Setting a price is user-triggered, then the list is refreshed from the API.
-    async function onSubmitPrice(event){
+    async function onSubmitPrice(event: SubmitEvent<HTMLFormElement>){
         try {
             event.preventDefault();
             setSubmitError("");
@@ -59,14 +65,19 @@ function Prices(){
             setPriceInput("")
         }
         catch(error){
-            setSubmitError(error.message);
+            if (error instanceof Error) {
+                setSubmitError(error.message);
+            }
+            else {
+                setSubmitError("Setting price failed.");
+            }
         }
         finally{
             setIsSubmitting(false)
         }
     }
 
-    function onLookupNameChange(event){
+    function onLookupNameChange(event: ChangeEvent<HTMLInputElement>){
         setLookupName(event.target.value)
     }
     // Lookup is user-triggered because the user controls which commodity to search for.
@@ -79,7 +90,12 @@ function Prices(){
             setLookupResult(lookupResponse);
         }
         catch(error){
-            setLookupError(error.message);
+            if (error instanceof Error) {
+                setLookupError(error.message);
+            }
+            else {
+                setLookupError("Search failed.");
+            }
         }
         finally{
             setIsLookupLoading(false);
@@ -89,7 +105,7 @@ function Prices(){
 
 
     const hasPrices = prices.length > 0;
-    let getPricesContent;
+    let getPricesContent: ReactNode;
     if (isLoading){
         getPricesContent = <p>Loading prices...</p>
     }

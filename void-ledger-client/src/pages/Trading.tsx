@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, ChangeEvent, SubmitEvent } from "react";
 import { deposit, buyCommodity, sellCommodity } from "../services/tradeService";
 
 function Trading() {
@@ -26,10 +26,10 @@ function Trading() {
 
     
     // Deposit is user-triggered, so the API call stays in the submit handler.
-    function onDepositChange(event){
+    function onDepositChange(event: ChangeEvent<HTMLInputElement>){
         setDepositAmount(event.target.value);
     }
-    async function onDepositSubmit(event){
+    async function onDepositSubmit(event: SubmitEvent<HTMLFormElement>){
         try{
             event.preventDefault();
             setIsDepositSubmitting(true);
@@ -37,25 +37,30 @@ function Trading() {
             setDepositError("");
             const response = await deposit(Number(depositAmount));
             setDepositSuccess(response.message);
-            setDepositAmount("")
+            setDepositAmount("");
 
         }
         catch(error){
-            setDepositError(error.message)
+            if (error instanceof Error) {
+            setDepositError(error.message);
+            }
+            else {
+                setDepositError("Deposit failed.");
+            }
         }
         finally{
-            setIsDepositSubmitting(false)
+            setIsDepositSubmitting(false);
         }
     }
 
     // Buy submits the backend DTO shape: name + qty.
-    function onBuyNameChange(event){
+    function onBuyNameChange(event: ChangeEvent<HTMLInputElement>){
         setBuyName(event.target.value);
     }
-    function onBuyQtyChange(event){
+    function onBuyQtyChange(event: ChangeEvent<HTMLInputElement>){
         setBuyQty(event.target.value);
     }
-    async function onBuySubmit(event){
+    async function onBuySubmit(event: SubmitEvent<HTMLFormElement>){
         try {
             event.preventDefault();
             setIsBuySubmitting(true);
@@ -67,7 +72,12 @@ function Trading() {
             setBuyQty("");
         }
         catch(error){
-            setBuyError(error.message);
+            if (error instanceof Error) {
+                setBuyError(error.message);
+            }
+            else {
+                setBuyError("Buy failed.");
+            }
         }
         finally{
             setIsBuySubmitting(false);
@@ -75,13 +85,13 @@ function Trading() {
     }
 
     // Sell uses separate submit state because it can fail independently from deposit and buy.
-    function onSellNameChange(event){
+    function onSellNameChange(event: ChangeEvent<HTMLInputElement>){
         setSellName(event.target.value);
     }
-    function onSellQtyChange(event){
+    function onSellQtyChange(event: ChangeEvent<HTMLInputElement>){
         setSellQty(event.target.value);
     }
-    async function onSellSubmit(event){
+    async function onSellSubmit(event: SubmitEvent<HTMLFormElement>){
         try {
             event.preventDefault();
             setIsSellSubmitting(true);
@@ -93,7 +103,12 @@ function Trading() {
             setSellQty("");
         }
         catch(error){
-            setSellError(error.message);
+            if (error instanceof Error) {
+                setSellError(error.message);
+            }
+            else {
+                setSellError("Sell failed.");
+            }
         }
         finally{
             setIsSellSubmitting(false);
